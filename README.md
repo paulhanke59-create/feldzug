@@ -1,6 +1,6 @@
 # Feldzug – Mittelalter-Strategie (Prototyp)
 
-Rundenbasiertes Strategiespiel im freien Fantasie-Mittelalter. Zwei Parteien, je ein Heer.
+Rundenbasiertes Strategiespiel im freien Fantasie-Mittelalter. Zwei Parteien, mehrere Heere pro Seite (max. 5), Wirtschaft und Werkstatt.
 Entschieden wird nicht auf dem Schlachtfeld, sondern beim **Nachschub**: Verpflegung und Munition gehen aus.
 
 Eine einzige Datei (`index.html`), kein Build nötig – läuft im Browser und später als Android-App (Capacitor).
@@ -9,6 +9,14 @@ Eine einzige Datei (`index.html`), kein Build nötig – läuft im Browser und s
 
 - Lokal: `index.html` im Browser öffnen.
 - GitHub Pages: Repo → *Settings → Pages → Deploy from branch → `main` / root*.
+
+## Neu in Version 2
+
+- **Heer teilen / vereinen** (Befehle): Abteilungen mit eigenen Marschzielen; Verpflegung und Munition gehen anteilig mit.
+- **Werkstatt**: Schwertkämpfer, Piekeniere, Bogenschützen, Reiter, Kanonen, Späher, Pioniere sowie Pfeile und Schießpulver. Kosten in Gold, Eisen, Holz, Verpflegung; 2 Aufträge parallel.
+- **Befestigungen** (Pioniere, mind. 10): Feldschanze, Wachturm, Burgmauer (Stufe 1–3) und Straßenausbau. Der Bau läuft nur, solange die Pioniere am Ort bleiben.
+- **Neue Orte**: Höfe, Eisenmine, Holzfällerlager, Marktflecken, weitere Dörfer. Jeder liefert Rohstoffe, wenn er besetzt ist (Befehl *Besetzen*) und nicht geplündert wurde.
+- Späher sehen weiter und sind schnell; Heere nur aus Spähern/Reitern ziehen 4 statt 2,5 Punkte.
 
 ## Bedienung
 
@@ -33,9 +41,7 @@ Eine einzige Datei (`index.html`), kein Build nötig – läuft im Browser und s
 
 ## Geplant
 
-- Späher (große Sichtweite, schnell, kämpfen nicht)
-- Pioniere: Straßen bauen, Brücken, Wachtürme/Schanzen, Gebiet erweitern
-- Wirtschaft: Dörfer und Regionen liefern Getreide und Gold; Plündern wirkt auf die Wirtschaft
+- Brücken bauen, Gebietsgrenzen
 - Tross-Kapazität (mehr Munition = langsamerer Heer), Jahreszeiten, Söldner
 - Android-APK über Capacitor
 - Balancing (die Burg-Verteidigung ist aktuell sehr stark)
