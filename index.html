@@ -28,8 +28,8 @@ canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:b
 #log .battle{color:var(--bad);font-weight:bold}
 #log .good{color:var(--ok)}
 #log .dim{opacity:.7}
-#info{left:6px;right:6px;bottom:calc(env(safe-area-inset-bottom) + 70px);padding:6px 10px;font-size:12.5px;min-height:32px}
-#armybar{left:6px;right:58px;bottom:calc(env(safe-area-inset-bottom) + 118px);display:flex;gap:6px;overflow-x:auto;background:none;border:none;box-shadow:none;padding:2px 0}
+#info{left:6px;right:6px;bottom:calc(env(safe-area-inset-bottom) + 70px);padding:6px 10px;font-size:12.5px;min-height:32px;max-height:104px;overflow:auto}
+#armybar{left:6px;right:58px;bottom:calc(env(safe-area-inset-bottom) + 178px);display:flex;gap:6px;overflow-x:auto;background:none;border:none;box-shadow:none;padding:2px 0}
 .chip{flex:0 0 auto;padding:5px 10px;border-radius:16px;border:1px solid var(--edge);background:rgba(240,227,192,.95);font-size:12.5px;box-shadow:0 1px 4px rgba(0,0,0,.4);height:auto;color:var(--ink)}
 .chip.sel{background:#e0a526;font-weight:bold}
 #ctl{left:6px;right:6px;bottom:calc(env(safe-area-inset-bottom) + 6px);display:flex;gap:7px;background:none;border:none;box-shadow:none}
@@ -38,6 +38,8 @@ button:active{transform:translateY(1px);background:#d4be88}
 button:disabled{opacity:.45}
 #bEnd{flex:2;background:linear-gradient(#c9573f,#9c3a27);color:#fff7e6;border-color:#6b2416;font-weight:bold}
 #bCmd,#bShop{flex:1.1}
+#bHelp{flex:0 0 52px;padding:0;font-weight:bold;background:linear-gradient(#f0cf6a,#d9a528)}
+#bHelp.pulse{animation:pl 1.2s infinite}@keyframes pl{50%{box-shadow:0 0 0 6px rgba(224,165,38,.5)}}
 #zoom{right:6px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;background:none;border:none;box-shadow:none}
 #zoom button{width:44px;height:44px;padding:0;font-size:22px}
 #overlay{position:fixed;inset:0;background:rgba(30,22,12,.82);display:flex;align-items:center;justify-content:center;padding:14px;z-index:10}
@@ -81,6 +83,7 @@ button:disabled{opacity:.45}
 <div id="ctl" class="panel">
   <button id="bCmd">Befehle</button>
   <button id="bShop">Werkstatt</button>
+  <button id="bHelp" aria-label="Hilfe">?</button>
   <button id="bEnd">Zug beenden ▶</button>
 </div>
 
@@ -1392,7 +1395,9 @@ function updateHud(){
     if(G.jobs.some(j=>j.side==='A'&&j.node===a.at))extra.push('Bau läuft');
     const gc=garrisonCount('A');
     if(gc)extra.push(gc+' Rekruten warten in der Burg');
-    $('info').textContent='Standort: '+where+(extra.length?' – '+extra.join(' · '):'');
+    const tip=advice()[0];
+    $('info').innerHTML='Standort: '+where+(extra.length?' – '+extra.join(' · '):'')+(tip?'<br><small><b>Tipp:</b> '+tip.text+'</small>':'');
+    $('bHelp').classList.toggle('pulse',!!tip&&tip.prio>=85);
   }else $('info').innerHTML=selectedMsg;
 }
 function centerOn(a){
@@ -1537,6 +1542,71 @@ function describeNode(id){
   return s;
 }
 
+
+/* ---------- Ratgeber ---------- */
+function advice(){
+  const out=[],a=selArmy(),st=G.stock.A,inc=income('A');
+  if(!a)return out;
+  const add=(prio,text,go)=>out.push({prio,text,go:go||null});
+  const from=a.at!==null?a.at:a.to;
+  const r=dijkstra(from,'move');
+  const sup=supplyInfo(a),fc=foodCap(a);
+  const vis=sideArmies('B').filter(b=>G.visIds[b.id]);
+  const nearE=vis.map(b=>({b,d:dist(armyPos(a),armyPos(b))})).sort((p,q)=>p.d-q.d)[0];
+  if(nearE&&nearE.d<260){
+    const me=troops(a),en=troops(nearE.b);
+    if(me>=en*1.2)add(95,'Feind in der Nähe (ca. '+Math.round(en/10)*10+' Mann), du bist stärker. Angreifen oder in Burg/Turm abwarten, bis er herankommt.');
+    else add(98,'Feind in der Nähe (ca. '+Math.round(en/10)*10+' Mann) und stärker oder gleich stark. Zieh dich zu Burg, Turm oder Schanze zurück oder vereine deine Abteilungen.',{node:a.at===SIDE.A.home?null:SIDE.A.home});
+  }
+  if(a.starving||a.food<fc*0.25)add(97,'Verpflegung fast leer! Zurück Richtung Burg, solange der Nachschub fließt, oder einen Ort plündern.',{node:SIDE.A.home});
+  else if(sup.rate<=0)add(96,'Nachschublinie gekappt. Verpflegung reicht noch ca. '+Math.floor(a.food/Math.max(1,a.lastCons||Math.ceil(troops(a)/60)))+' Züge – Weg zum Nachschub freikämpfen oder umkehren.');
+  if(a.units.bow>0&&a.arrows<5)add(80,'Pfeile aufgebraucht: Bogenschützen kämpfen kaum noch. In der Werkstatt Pfeile bestellen und nahe der Burg auffüllen lassen.');
+  if(a.units.can>0&&a.powder<3)add(80,'Pulver fast leer: Kanonen sind nutzlos. Schießpulver in der Werkstatt bestellen.');
+  if(canPlunder(a)&&a.food<fc*0.6)add(85,'Hier lässt sich plündern: füllt Verpflegung auf und bringt Gold (Ort fällt 8 Züge aus). Befehle → Plündern.');
+  if(canOccupy(a))add(88,'Dieser Ort ist frei. Besetzen bringt jeden Zug Rohstoffe. Befehle → Besetzen.');
+  const q=G.queue.A;
+  if(q.length<2){
+    let t='Werkstatt leer';
+    if(st.arrows<40)t+=': Pfeile bestellen (Vorrat '+Math.round(st.arrows)+')';
+    else if(st.powder<20)t+=': Pulver bestellen (Vorrat '+Math.round(st.powder)+')';
+    else if(canPay('A',ITEMS.inf.cost))t+=': Schwertkämpfer, Bogenschützen oder Kanonen herstellen, solange Gold/Eisen reichen';
+    else t+=' – Rohstoffe sammeln (Gold '+Math.round(st.gold)+', Eisen '+Math.round(st.iron)+')';
+    add(60,t+'.');
+  }
+  if(garrisonCount('A')>0&&!sideArmies('A').some(x=>x.at===SIDE.A.home))add(55,'In der Burg warten Rekruten. Sie bilden eine neue Abteilung und lassen sich später mit dem Heer vereinen.');
+  let best=null,bd=Infinity;
+  for(const id in NODES){
+    const n=NODES[id];
+    if(!isEco(n)||G.own[id]==='A'||id===a.at)continue;
+    const known=G.known[id];
+    if(known&&known.owner==='B'&&G.turn<4)continue;
+    if(r.dist[id]<bd){bd=r.dist[id];best=id}
+  }
+  if(best&&!a.path.length&&bd<10&&G.turn<30)add(70,'Nächstes freies Ziel: '+NODES[best].name+' ('+TYPE_LAB[NODES[best].type]+', ca. '+Math.ceil(bd/speedOf(a))+' Züge). Besetzen steigert dein Einkommen.',{node:best});
+  if(sideArmies('A').length===1&&troops(a)>=500&&a.at!==null&&G.turn>=2)add(50,'Teile eine kleine Abteilung (ca. 100–150 Mann) ab, die Höfe und Dörfer besetzt, während das Hauptheer zusammenbleibt.');
+  if((a.units.pion||0)>=10&&a.at!==null&&NODES[a.at].type!=='castle'&&!G.fort[a.at]&&buildOptions(a).length>0&&G.turn>2)add(45,'Mit deinen Pionieren: eine Feldschanze oder einen Wachturm an einem wichtigen Ort bauen (Befehle → Bauen).');
+  if(G.wall.A<2&&(a.units.pion||0)>=15&&a.at===SIDE.A.home)add(40,'Burgmauer ausbauen macht deine Burg deutlich sicherer.');
+  if(a.at!==null&&NODES[a.at].type==='castle'&&G.turn<=2&&!a.path.length)add(75,'Tippe einen Ort auf der Karte an: gelbe Zahlen zeigen, wo dein Heer nach 1., 2., … Zügen steht. Danach Zug beenden.');
+  if(!a.path.length&&!out.some(o=>o.prio>=70)&&G.turn>=6)add(30,'Willst du den Sieg? Marschiere mit dem vereinten Heer zur Burg Schwarzfeld, wenn Verpflegung und Munition voll sind – oder vorher den Gegner bei einem Turm stellen.',{node:'burgB'});
+  if(!out.length)add(10,'Lage ruhig. Zug beenden, oder Heer neu positionieren.');
+  out.sort((p,q)=>q.prio-p.prio);
+  return out;
+}
+function openHelp(){
+  const tips=advice().slice(0,4);
+  let h='<h1>Was jetzt?</h1><p><small>Empfehlungen für '+(selArmy()?selArmy().name:'dein Heer')+' – nach Dringlichkeit.</small></p>';
+  tips.forEach((t,i)=>{h+='<div class="row"><div>'+(i===0?'<b>'+t.text+'</b>':t.text)+'</div>'+(t.go&&t.go.node?'<button data-i="'+i+'">Hin</button>':'')+'</div>'});
+  h+='<h2>Grundregeln</h2><ul><li>Heer braucht jeden Zug Verpflegung. Die grüne Linie ist der Nachschub – ist sie kurz, kommt viel an.</li><li>Dörfer, Höfe, Minen, Holzfäller besetzen = Einkommen. Plündern nur im Notfall.</li><li>Werkstatt immer gefüllt halten, Pfeile und Pulver nicht vergessen.</li><li>Kämpfe möglichst an eigenen Burgen, Türmen und Schanzen.</li><li>Teile das Heer, um schneller Orte zu besetzen, aber zieh vor dem Kampf wieder zusammen.</li></ul>';
+  h+='<button class="big" id="bClose">Schließen</button>';
+  showOverlay(h,true);
+  $('card').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{
+    const t=tips[Number(b.dataset.i)],a=selArmy();
+    if(a&&t.go&&t.go.node&&planArmy(a,t.go.node)){selectedMsg=describeNode(t.go.node)}
+    closeSheet();
+  });
+  $('bClose').onclick=closeSheet;
+}
+
 /* ---------- Eingabe ---------- */
 function clampView(){
   const mx=60;
@@ -1612,6 +1682,7 @@ $('zOut').onclick=()=>zoomAt(cw/2,ch/2,1/1.35);
 $('zCenter').onclick=()=>centerOn(selArmy());
 $('bCmd').onclick=openCommands;
 $('bShop').onclick=openShop;
+$('bHelp').onclick=openHelp;
 $('bEnd').onclick=()=>{selectedMsg='';endTurn();afterTurn()};
 function afterTurn(){
   updateHud();dirty=true;
@@ -1649,7 +1720,7 @@ requestAnimationFrame(loop);
 
 window.__game={get G(){return G},render,updateHud,handleTap,endTurn,planArmy,resolveBattle,supplyInfo,aiDecide,canPlunder,canOccupy,newGame,troops,
   NODES,EDGES,EMAP,routeCost,splitArmy,mergeArmies,orderItem,buildOptions,startBuild,income,sideArmies,selArmy,
-  ITEMS,BUILD,speedOf,garrisonCount,
+  ITEMS,BUILD,speedOf,garrisonCount,advice,
   set seed(s){G.rnd=mulberry32(s)}};
 })();
 </script>
