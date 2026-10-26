@@ -10,19 +10,18 @@ Eine einzige Datei (`index.html`), kein Build nötig – läuft im Browser und s
 - Lokal: `index.html` im Browser öffnen.
 - GitHub Pages: Repo → *Settings → Pages → Deploy from branch → `main` / root*.
 
-## Neu in Version 2
+## Version 3 (vereinfacht)
 
-- **Heer teilen / vereinen** (Befehle): Abteilungen mit eigenen Marschzielen; Verpflegung und Munition gehen anteilig mit.
-- **Werkstatt**: Schwertkämpfer, Piekeniere, Bogenschützen, Reiter, Kanonen, Späher, Pioniere sowie Pfeile und Schießpulver. Kosten in Gold, Eisen, Holz, Verpflegung; 2 Aufträge parallel.
-- **Befestigungen** (Pioniere, mind. 10): Feldschanze, Wachturm, Burgmauer (Stufe 1–3) und Straßenausbau. Der Bau läuft nur, solange die Pioniere am Ort bleiben.
-- **Neue Orte**: Höfe, Eisenmine, Holzfällerlager, Marktflecken, weitere Dörfer. Jeder liefert Rohstoffe, wenn er besetzt ist (Befehl *Besetzen*) und nicht geplündert wurde.
-- Späher sehen weiter und sind schnell; Heere nur aus Spähern/Reitern ziehen 4 statt 2,5 Punkte.
+- Nur noch **Gold**, **Brot** und **Munition**. Orte, die dein Heer erreicht, werden automatisch besetzt und bringen Gold und Brot.
+- **Kaufen**: Fußvolk, Schützen, Reiter, Kanonen und Munition nur mit Gold.
+- **Befehle**: Heer abspalten (Drittel/Hälfte), vereinen, Feldschanze bauen, Burgmauer ausbauen.
+- Gelber **?**-Knopf und Tipp-Zeile: sagen, was jetzt sinnvoll ist.
 
 ## Bedienung
 
 - Ort antippen → Marschbefehl. Die gelben Zahlen zeigen, wo das Heer am Ende des 1., 2., … Zuges steht.
 - **Zug beenden** → Bewegung, Versorgung und Gegnerzug laufen ab.
-- **Plündern** (nur in fremden/neutralen Dörfern), **Halt** (Marschbefehl löschen).
+- **Befehle**: abspalten, vereinen, bauen, Marsch stoppen. **Kaufen**: Truppen für Gold.
 - Ziehen = Karte verschieben, zwei Finger / Mausrad = Zoomen, ⌖ = auf das eigene Heer zentrieren.
 
 ## Regeln im Prototyp
