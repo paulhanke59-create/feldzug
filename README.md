@@ -13,7 +13,7 @@ Eine einzige Datei (`index.html`), kein Build nötig – läuft im Browser und s
 ## Version 4 (Echtzeit)
 
 - Läuft in **Echtzeit** (⏸ Pause, 1×/2×/4× Tempo). Menüs halten die Zeit an.
-- **Gold, Brot und Eisen** fliegen von den Orten animiert in Schatztruhe, Vorrat und Berg-Symbol.
+- **Kalender** oben (1 Tag = 2 s, 1 Monat = 60 s). Zum **Monatsende** zahlen alle Orte ihre Abgaben: Gold, Brot und Eisen fliegen animiert in Schatztruhe, Vorrat und Berg-Symbol.
 - **Krieger nur bei Gelegenheit**: Angebote erscheinen zeitlich begrenzt als goldene Kreise an deinen Orten (Burg, Dorf, Markt, Eisenmine).
 - **Steuern pro Ort** (niedrig/normal/hoch): mehr Gold, aber sinkende Zufriedenheit und damit weniger Ertrag.
 - **Handel**: Händlerwagen pendeln zwischen zwei eigenen Orten und bringen Gold und Waren; feindliche Heere können sie überfallen.
