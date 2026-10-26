@@ -10,17 +10,18 @@ Eine einzige Datei (`index.html`), kein Build nötig – läuft im Browser und s
 - Lokal: `index.html` im Browser öffnen.
 - GitHub Pages: Repo → *Settings → Pages → Deploy from branch → `main` / root*.
 
-## Version 3 (vereinfacht)
+## Version 4 (Echtzeit)
 
-- Nur noch **Gold**, **Brot** und **Munition**. Orte, die dein Heer erreicht, werden automatisch besetzt und bringen Gold und Brot.
-- **Kaufen**: Fußvolk, Schützen, Reiter, Kanonen und Munition nur mit Gold.
-- **Befehle**: Heer abspalten (Drittel/Hälfte), vereinen, Feldschanze bauen, Burgmauer ausbauen.
-- Gelber **?**-Knopf und Tipp-Zeile: sagen, was jetzt sinnvoll ist.
+- Läuft in **Echtzeit** (⏸ Pause, 1×/2×/4× Tempo). Menüs halten die Zeit an.
+- **Gold, Brot und Eisen** fliegen von den Orten animiert in Schatztruhe, Vorrat und Berg-Symbol.
+- **Krieger nur bei Gelegenheit**: Angebote erscheinen zeitlich begrenzt als goldene Kreise an deinen Orten (Burg, Dorf, Markt, Eisenmine).
+- **Steuern pro Ort** (niedrig/normal/hoch): mehr Gold, aber sinkende Zufriedenheit und damit weniger Ertrag.
+- **Handel**: Händlerwagen pendeln zwischen zwei eigenen Orten und bringen Gold und Waren; feindliche Heere können sie überfallen.
+- Marschierende Soldaten, wehende Fahnen, Windmühle, Rauch, Wolkenschatten, Schlacht-Effekte.
 
 ## Bedienung
 
-- Ort antippen → Marschbefehl. Die gelben Zahlen zeigen, wo das Heer am Ende des 1., 2., … Zuges steht.
-- **Zug beenden** → Bewegung, Versorgung und Gegnerzug laufen ab.
+- Ort antippen → Infofeld mit Marschbefehl, Steuern, Handel und Anwerben.
 - **Befehle**: abspalten, vereinen, bauen, Marsch stoppen. **Kaufen**: Truppen für Gold.
 - Ziehen = Karte verschieben, zwei Finger / Mausrad = Zoomen, ⌖ = auf das eigene Heer zentrieren.
 
