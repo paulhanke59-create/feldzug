@@ -567,6 +567,12 @@ function newGame(){
   G.sel=sideArmies(PL)[0].id;
   buildBackground(seed);
   for(const id in NODES)G.known[id]=null;
+  G.vgar={};
+  for(const id in NODES){
+    if(NODES[id].type!=='village')continue;
+    const n=6+Math.floor(G.rnd()*6),ow=G.own[id];
+    if(ow){G.K[ow].gar.inf+=n}else G.vgar[id]=n;
+  }
   const cp=NODES[KINGS[PL].capital];
   reveal(cp.x,cp.y,300);
   for(const id of owned(PL)){reveal(NODES[id].x,NODES[id].y,190)}
@@ -630,7 +636,12 @@ function refreshKnown(){
     const n=NODES[id];
     let v=false;for(const s of src)if(Math.hypot(s.x-n.x,s.y-n.y)<s.r){v=true;break}
     if(!v)continue;
+    const first=!G.known[id];
     G.known[id]={owner:G.own[id]};
+    if(first&&G.vgar&&G.vgar[id]>0&&!G.own[id]){
+      const m=G.vgar[id];G.vgar[id]=0;G.K[PL].gar.inf+=m;
+      logMsg(n.name+' entdeckt: '+m+' Mann Dorfwache schließen sich dir an.','good');
+    }
     G.knownFort[id]=G.fort[id]?{type:G.fort[id].type,owner:G.fort[id].owner}:null;
   }
   const now={};
@@ -733,6 +744,7 @@ function occupy(a,n){
   G.own[n.id]=side;
   if(G.fort[n.id]&&G.fort[n.id].owner!==side)delete G.fort[n.id];
   a.occ=(a.occ||0)+1;
+  if(G.vgar[n.id]>0){G.K[side].gar.inf+=G.vgar[n.id];if(side===PL)logMsg(G.vgar[n.id]+' Mann Dorfwache aus '+n.name+' schließen sich dir an.','good');G.vgar[n.id]=0}
   if(side===PL){logMsg(n.name+' gehört jetzt zu deinem Reich'+(prev?' (von '+KINGS[prev].name+' erobert)':'')+'.','good');refreshKnown()}
   else if(prev===PL)logMsg(n.name+' wurde von '+KINGS[side].name+' erobert!','bad');
   else if(visibleAt(PL,n.x,n.y))logMsg(KINGS[side].name+' besetzt '+n.name+'.','dim');
@@ -1909,6 +1921,7 @@ function nodeInfoHtml(id){
     }
   }
   if(own===PL&&(isEco(n)||n.type==='castle'))h+='<button data-act="trade">Handel</button>';
+  h+='<button data-act="info">Dorfinfo</button>';
   h+='</div>';
   return h;
 }
@@ -2117,6 +2130,32 @@ function openTrade(id){
   $('bClose').onclick=closeSheet;
 }
 
+function openNodeInfo(id){
+  const n=NODES[id],kn=G.known[id],own=kn?kn.owner:null,cap=NODES[KINGS[PL].capital];
+  const rows=[];
+  const add=(a,b)=>rows.push('<div class="row"><span>'+a+'</span><b>'+b+'</b></div>');
+  add('Art',TYPE_LAB[n.type]);
+  add('Herrscher',own?KINGS[own].name+(own===PL?' (du)':''):'niemand');
+  add('Einwohner (ca.)',POPN[n.type]||0);
+  const cn=CAPN[n.type];
+  if(cn)add('Arbeitsplätze',Object.keys(cn).map(x=>({farm:'Feld',wood:'Holz',ore:'Erz',coal:'Kohle',craft:'Handwerk'}[x])+' '+cn[x]).join(', '));
+  if(n.type==='village'){
+    const g=G.vgar[id]||0;
+    add('Dorfwache',own===PL?'bereits bei deinem Heer':(g>0?g+' Mann (schließen sich dir an, wenn du den Ort entdeckst/besetzt)':'keine mehr'));
+  }
+  const f=G.knownFort[id];
+  add('Befestigung',f?FORT[f.type].name:'keine'+(n.type==='castle'&&own?' (Mauerstufe '+G.wall[own]+')':''));
+  if(n.type==='castle'&&own===PL)add('Mauerstufe',G.wall[PL]);
+  add('Entfernung zur Hauptburg','ca. '+Math.round(Math.hypot(n.x-cap.x,n.y-cap.y)/10)+' Wegeinheiten');
+  const pr=pathFromTo(KINGS[PL].capital,id);
+  if(pr&&G.known[id])add('Marsch von der Hauptburg','ca. '+Math.ceil(pr.cost/2.5*TURN_S)+' s');
+  add('Handelsroute',G.routes.some(r=>r.a===id||r.b===id)?'ja':'nein');
+  const enemy=G.armies.some(a=>a.alive&&a.side!==PL&&a.at===id&&visibleAt(PL,n.x,n.y));
+  if(enemy)add('Achtung','Feindliches Heer vor Ort');
+  showOverlay('<h1>'+n.name+'</h1>'+rows.join('')+'<button class="big" id="bClose">Schließen</button>');
+  $('bClose').onclick=closeSheet;
+}
+
 /* ---------- Ratgeber ---------- */
 function advice(){
   const out=[],a=selArmy(),K=G.K[PL];
@@ -2246,6 +2285,7 @@ $('info').addEventListener('click',e=>{
   if(act==='go'&&a){planArmy(a,id);G.pick=null}
   else if(act==='fort'){if(orderBuild(PL,b.dataset.v,id))logMsg(FORT[b.dataset.v].name+' bei '+NODES[id].name+' beauftragt – fertig zum Monatsende.','good')}
   else if(act==='trade'){openTrade(id);return}
+  else if(act==='info'){openNodeInfo(id);return}
   updateHud();
 });
 
