@@ -462,14 +462,6 @@ function buildBackground(seed){
     else if(it.t==='mountain')symMount(c,it.x,it.y,it.s);
     else symSwamp(c,it.x,it.y,it.s);
   }
-  c.strokeStyle='#7A6647';c.lineWidth=6;c.strokeRect(3,3,W-6,H-6);
-  c.lineWidth=1;c.setLineDash([3,4]);c.strokeRect(16,16,W-32,H-32);c.setLineDash([]);
-  c.strokeStyle='#8B7355';c.lineWidth=1.4;
-  for(const [x,y] of [[16,16],[W-16,16],[16,H-16],[W-16,H-16]]){c.beginPath();c.arc(x,y,10,0,6.283);c.stroke();c.beginPath();c.arc(x,y,4,0,6.283);c.stroke()}
-  drawCompass(c,W-120,H-120);
-  const vg=c.createRadialGradient(W/2,H/2,W*0.42,W/2,H/2,W*0.78);
-  vg.addColorStop(0,'rgba(90,60,20,0)');vg.addColorStop(1,'rgba(90,60,20,.3)');
-  c.fillStyle=vg;c.fillRect(0,0,W,H);
 }
 
 
@@ -564,7 +556,7 @@ function newGame(){
   ectx.clearRect(0,0,GW,GW);
   for(const id in NODES)G.own[id]=NODES[id].owner;
   for(const k of KIDS){
-    G.K[k]={id:k,alive:true,stock:startStock(),w:defaultWeights(),prod:'arms',tax:1,loy:80,
+    G.K[k]={id:k,focus:'balanced',alive:true,stock:startStock(),w:defaultWeights(),prod:'arms',tax:1,loy:80,
       orders:{rec:{inf:0,bow:0,cav:0,can:0,scout:0},build:[]},gar:blankUnits(),hunger:0};
     G.wall[k]=1;G.cnt[k]=1;
     const cap=KINGS[k].capital;
@@ -940,6 +932,7 @@ function monthEnd(){
   G.nextMonth+=MONTH_S;
   const di=dateInfo(G.time);
   for(const k of aliveKings()){
+    if(k===PL)G.K[k].w=focusWeights(k,G.K[k].focus);
     deliverOrders(k);
     const plan=applyEconomy(k);
     absorbGarrison(k);
@@ -950,7 +943,6 @@ function monthEnd(){
         'Handwerk: '+Math.round(plan.gross.iron)+' Eisen, '+Math.round(plan.gross.arms)+' Waffen, '+Math.round(plan.gross.bows)+' Bögen, '+Math.round(plan.gross.bows*3)+' Munition'+(plan.gross.cannons>=0.05?', '+plan.gross.cannons.toFixed(1)+' Kanonen':''),
         'Steuern: +'+Math.round(plan.gross.gold)+' Gold · Verbrauch: '+Math.round(plan.eat)+' Brot'
       ];
-      if(plan.unused>5)G.report.push('Achtung: '+Math.round(plan.unused)+' Arbeiter finden keine Arbeit (zu wenig Äcker, Minen oder Werkstätten).');
       if(G.K[k].hunger>0)G.report.push('Hunger im Land! Das Volk ist unzufrieden.');
       logMsg('Monatsende: Das Volk liefert seine Abgaben.','good');
       G.monthFlash=performance.now();G.council=true;
@@ -1153,6 +1145,14 @@ function adviseWeights(k){
     else if(K.stock.arms<80&&p.d.arms<20)w.smith+=3;
     else break;
   }
+  return w;
+}
+function focusWeights(k,focus){
+  const w=adviseWeights(k);
+  if(focus==='arms'||focus==='cannons'){w.smith+=12;w.smelt+=6;w.ore+=4;w.coal+=3}
+  else if(focus==='bows'){w.fletch+=14;w.wood+=4}
+  G.K[k].prod=focus==='cannons'?'cannons':'arms';
+  for(let i=0;i<14;i++){const p=econPlan(k,w);if(p.d.food<0)w.farm+=6;else break}
   return w;
 }
 function aiEconomy(k){
@@ -1974,7 +1974,7 @@ function showIntro(){
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
-  '<li><b>Wirtschaftsrat</b>: Wer arbeitet wo? Steuern? Genug Brot, Eisen, Waffen?</li>'+
+  '<li><b>Wirtschaftsrat</b>: Schwerpunkt wählen (Waffen, Bögen, Kanonen) und Steuern. Mehr nicht.</li>'+
   '<li><b>Militärrat</b>: Heer, Rekruten, Befestigungen, Späher, Kriegszüge.</li>'+
   '<li>Rekruten und Bauten kommen erst zum nächsten Monatsende. Das Spiel läuft in Echtzeit (⏸ Pause, 1×/2×/4×); Fenster halten die Zeit an.</li>'+
   '<li>Ziel: Überlebe und erobere die Hauptburgen der anderen. Fällt deine Hauptburg, ist alles verloren.</li></ul>'+
@@ -2000,7 +2000,7 @@ function showMonthReport(){
 
 /* ---------- Wirtschaftsrat ---------- */
 function advisorWeights(){return adviseWeights(PL)}
-const ECO_RES=['food','wood','ore','coal','iron','arms','bows','ammo','cannons','gold'];
+const ECO_RES=['food','wood','iron','arms','bows','ammo','cannons','gold'];
 function ecoForecast(){
   const K=G.K[PL],p=econPlan(PL);
   let h='<table class="ft">';
@@ -2011,37 +2011,23 @@ function ecoForecast(){
   }
   h+='</table>';
   if(p.d.food<0)h+='<p class="neg">Brot reicht nicht! Es droht Hunger.</p>';
-  if(p.unused>5)h+='<p class="warn">'+Math.round(p.unused)+' Arbeiter ohne Platz (zu wenig Äcker, Minen oder Werkstätten – erobere mehr Orte).</p>';
+  
   return h;
 }
-function ecoSliders(){
-  const K=G.K[PL],p=econPlan(PL);
-  let h='';
-  for(const pr of PROFS){
-    const al=p.alloc[pr],ef=p.eff[pr];
-    h+='<div class="srow"><div class="sl"><span>'+PLAB[pr]+'</span><span id="sv_'+pr+'">'+Math.round(ef)+(ef<al-1?' (Platz max.)':'')+'</span></div><input type="range" min="0" max="60" value="'+K.w[pr]+'" data-p="'+pr+'"></div>';
-  }
-  return h;
-}
+const FOCI=[['balanced','Ausgewogen','Von allem etwas'],['arms','Waffen','Mehr Schwerter und Eisen für Fußvolk und Reiter'],['bows','Bögen & Munition','Für Bogenschützen und Nachschub an Pfeilen'],['cannons','Kanonen','Schmiede bauen Kanonen (langsam, teuer)']];
 function openEco(){
-  const K=G.K[PL],p=econPlan(PL);
-  let h='<h1>Wirtschaftsrat</h1><p><small>Volk '+p.pop+' · Arbeitskräfte '+p.Wk+' (Soldaten abgezogen) · Zufriedenheit '+Math.round(K.loy)+' %. Gilt ab jetzt; Ernte und Abgaben kommen zum Monatsende.</small></p>';
-  h+='<h2>Arbeitsverteilung</h2><div id="sliders">'+ecoSliders()+'</div>';
-  h+='<div class="row"><div><b>Schmiede stellen her</b></div><span class="seg" id="segProd"><button data-v="arms" class="'+(K.prod==='arms'?'on':'')+'">Waffen</button><button data-v="cannons" class="'+(K.prod==='cannons'?'on':'')+'">Kanonen</button></span></div>';
+  const K=G.K[PL];
+  K.w=focusWeights(PL,K.focus);
+  const p=econPlan(PL);
+  let h='<h1>Wirtschaftsrat</h1><p><small>Volk '+p.pop+' · Zufriedenheit '+Math.round(K.loy)+' %. Die Arbeiter verteilen sich selbst – du setzt nur den Schwerpunkt. Genug Brot ist immer gesichert.</small></p>';
+  h+='<h2>Schwerpunkt</h2>';
+  for(const [k,n,d] of FOCI)h+='<div class="row"><div><b>'+n+'</b><br><small>'+d+'</small></div><button data-f="'+k+'" class="'+(K.focus===k?'sel':'')+'">'+(K.focus===k?'✔ gewählt':'Wählen')+'</button></div>';
   h+='<div class="row"><div><b>Steuern</b><br><small>Hoch = mehr Gold, aber Unmut</small></div><span class="seg" id="segTax">'+TAX_LAB.map((l,i)=>'<button data-v="'+i+'" class="'+(K.tax===i?'on':'')+'">'+l+'</button>').join('')+'</span></div>';
-  h+='<button class="big" id="bAdv">Berater-Vorschlag übernehmen</button>';
-  h+='<h2>Prognose bis Monatsende</h2><div id="fc">'+ecoForecast()+'</div>';
+  h+='<h2>Erwartet bis Monatsende</h2><div id="fc">'+ecoForecast()+'</div>';
   h+='<button class="big main" id="bClose">Fertig</button>';
   showOverlay(h);
-  const upd=()=>{
-    const pl=econPlan(PL);
-    for(const pr of PROFS){const e=$('sv_'+pr);if(e)e.textContent=Math.round(pl.eff[pr])+(pl.eff[pr]<pl.alloc[pr]-1?' (Platz max.)':'')}
-    $('fc').innerHTML=ecoForecast();
-  };
-  $('card').querySelectorAll('input[data-p]').forEach(inp=>inp.oninput=()=>{K.w[inp.dataset.p]=Number(inp.value);upd();planT=0});
-  $('segProd').onclick=e=>{const b=e.target.closest('button');if(!b)return;K.prod=b.dataset.v;openEco()};
-  $('segTax').onclick=e=>{const b=e.target.closest('button');if(!b)return;K.tax=Number(b.dataset.v);openEco()};
-  $('bAdv').onclick=()=>{K.w=advisorWeights();openEco()};
+  $('card').querySelectorAll('button[data-f]').forEach(b=>b.onclick=()=>{K.focus=b.dataset.f;planT=0;openEco()});
+  $('segTax').onclick=e=>{const b=e.target.closest('button');if(!b)return;K.tax=Number(b.dataset.v);planT=0;openEco()};
   $('bClose').onclick=closeSheet;
 }
 
@@ -2148,15 +2134,14 @@ function advice(){
     if(a.starving||a.food<fc*0.25)add(97,'Das Brot geht aus! Zurück zur Burg.',{node:KINGS[PL].capital});
     else if(sup.rate<=0)add(96,'Die Nachschublinie ist gekappt. Kehre um oder räume den Weg frei.');
   }
-  if(plan.d.food<0)add(94,'Das Reich verbraucht mehr Brot als es erntet. Wirtschaftsrat: mehr Bauern.');
+  if(plan.d.food<0)add(94,'Das Reich verbraucht mehr Brot als es erntet. Besetze Äcker, um mehr zu ernten.');
   if(K.stock.food<plan.eat*0.3)add(99,'Das Brot im Lager ist fast leer – Hungersnot droht!');
-  if(plan.unused>8)add(60,'Arbeiter ohne Arbeit: Erobere Äcker, Minen oder Wälder in der Nähe.');
   if(K.loy<45)add(88,'Das Volk ist unzufrieden. Senke die Steuern.');
   const scouts=sideArmies(PL).reduce((s,x)=>s+x.units.scout,0);
   if(scouts===0&&K.orders.rec.scout===0&&exploredPct()<12)add(86,'Du weißt kaum etwas über das Land. Bestelle im Militärrat Späher.');
   const rc=UK.reduce((s,u)=>s+K.orders.rec[u],0);
   if(rc===0&&K.stock.gold>150)add(70,'Du hast Gold übrig. Bestelle im Militärrat Rekruten oder baue Befestigungen.');
-  if(K.stock.arms<20&&K.stock.gold>100)add(65,'Waffen sind knapp. Erhöhe im Wirtschaftsrat die Schmiede.');
+  if(K.stock.arms<20&&K.stock.gold>100)add(65,'Waffen sind knapp. Wähle im Wirtschaftsrat den Schwerpunkt Waffen.');
   if(a&&a.at!==null&&!a.path.length&&G.time<20)add(85,'Tippe einen Ort an und wähle „Hierher marschieren“, um Land zu erkunden und Orte zu besetzen.');
   if(a&&a.at!==null&&!a.path.length){
     const r=dijkstra(a.at,'move');let best=null,bd=Infinity;
@@ -2171,7 +2156,7 @@ function openHelp(){
   const tips=advice().slice(0,3);
   let h='<h1>Was jetzt?</h1>';
   tips.forEach((t,i)=>{h+='<div class="row"><div>'+(i===0?'<b>'+t.text+'</b>':t.text)+'</div>'+(t.go&&t.go.node?'<button data-i="'+i+'">Hin</button>':'')+'</div>'});
-  h+='<h2>Kurz erklärt</h2><ul><li>Du bist der König. Wirtschaftsrat: Arbeit, Steuern, Waffenproduktion. Militärrat: Heer, Rekruten, Befestigungen, Späher.</li><li>Zum Monatsende liefern deine Orte Ernte und Gold, bestellte Rekruten und Bauten werden fertig.</li><li>Dein Heer isst ständig; die grüne Linie zeigt den Nachschub aus der Burg.</li><li>Alle anderen Königreiche sind Feinde. Besetze freie Orte, erobere ihre Hauptburgen.</li></ul>';
+  h+='<h2>Kurz erklärt</h2><ul><li>Du bist der König. Wirtschaftsrat: Schwerpunkt und Steuern. Militärrat: Heer, Rekruten, Befestigungen, Späher.</li><li>Zum Monatsende liefern deine Orte Ernte und Gold, bestellte Rekruten und Bauten werden fertig.</li><li>Dein Heer isst ständig; die grüne Linie zeigt den Nachschub aus der Burg.</li><li>Alle anderen Königreiche sind Feinde. Besetze freie Orte, erobere ihre Hauptburgen.</li></ul>';
   h+='<button class="big" id="bClose">Schließen</button>';
   showOverlay(h);
   $('card').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{
