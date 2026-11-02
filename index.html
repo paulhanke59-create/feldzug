@@ -2279,6 +2279,21 @@ function loop(ts){
   render();
   requestAnimationFrame(loop);
 }
+
+/* ---------- Zurück-Taste absichern ---------- */
+let leaving=false;
+try{history.pushState({g:1},'');}catch(e){}
+window.addEventListener('popstate',()=>{
+  if(leaving)return;
+  try{history.pushState({g:1},'');}catch(e){}
+  if(!G)return;
+  const wasHidden=$('overlay').classList.contains('hide'),prev=$('card').innerHTML,prevIntro=introOpen;
+  introOpen=true;
+  showOverlay('<h1>Spiel beenden?</h1><p>Der Spielstand geht verloren. Die Zeit steht solange still.</p><button class="big main" id="bStay">Weiterspielen</button><button class="big" id="bQuit">Wirklich beenden</button>');
+  $('bStay').onclick=()=>{introOpen=prevIntro;if(wasHidden)hideOverlay();else{$('card').innerHTML=prev;}};
+  $('bQuit').onclick=()=>{leaving=true;history.go(-2);setTimeout(()=>{try{window.close()}catch(e){}},300)};
+});
+window.addEventListener('beforeunload',e=>{if(!leaving&&G&&!G.over){e.preventDefault();e.returnValue=''}});
 window.addEventListener('resize',resize);
 buildClouds();
 newGame();
