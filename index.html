@@ -2030,7 +2030,7 @@ function closeSheet(){hideOverlay();updateHud()}
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.7 · 3.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.8 · 3.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2183,19 +2183,23 @@ function openNodeInfo(id){
   const add=(a,b)=>rows.push('<div class="row"><span>'+a+'</span><b>'+b+'</b></div>');
   add('Art',TYPE_LAB[n.type]);
   add('Herrscher',own?KINGS[own].name+(own===PL?' (du)':''):'niemand');
-  add('Einwohner (ca.)',POPN[n.type]||0);
+  const vague=own!==PL;
+  const pp=POPN[n.type]||0;
+  add('Einwohner',vague?(pp>=400?'viele, vermutlich mehrere Hundert':pp>=200?'einige Hundert':'wenige, vielleicht ein paar Dutzend'):'ca. '+pp);
   const cn=CAPN[n.type];
-  if(cn)add('Arbeitsplätze',Object.keys(cn).map(x=>({farm:'Feld',wood:'Holz',ore:'Erz',coal:'Kohle',craft:'Handwerk'}[x])+' '+cn[x]).join(', '));
+  if(cn&&vague)add('Arbeitsplätze','unbekannt – erst nach Besetzung einsehbar');
+  else if(cn)add('Arbeitsplätze',Object.keys(cn).map(x=>({farm:'Feld',wood:'Holz',ore:'Erz',coal:'Kohle',craft:'Handwerk'}[x])+' '+cn[x]).join(', '));
   if(n.type==='village'){
     const g=G.vgar[id]||0;
-    add('Dorfwache',own===PL?'bereits bei deinem Heer':(g>0?g+' Mann (schließen sich dir an, wenn du den Ort entdeckst/besetzt)':'keine mehr'));
+    add('Dorfwache',own===PL?'bereits bei deinem Heer':own?'vermutlich ein paar Männer':(g>0?'ein paar Männer, wohl nicht viele':'keine mehr'));
   }
   if(own&&G.lvl[id]){
-    add('Entwicklungsstufe',G.lvl[id]+' von 5');
+    if(own!==PL)add('Wohlstand',G.lvl[id]>=4?'wohl wohlhabend':G.lvl[id]>=3?'durchschnittlich':'eher bescheiden');
+    else add('Entwicklungsstufe',G.lvl[id]+' von 5');
     if(own===PL){const mi=moodInfo(id);add('Stimmung',Math.round(G.mood[id])+' % (Ziel '+Math.round(mi.target)+' %)');add('Einflüsse',mi.reasons.map(x=>x[0]+' '+(x[1]>=0?'+':'')+x[1]).join(', '))}
   }
   const f=G.knownFort[id];
-  add('Befestigung',f?FORT[f.type].name:'keine'+(n.type==='castle'&&own?' (Mauerstufe '+G.wall[own]+')':''));
+  add('Befestigung',f?FORT[f.type].name:'keine sichtbar'+(n.type==='castle'&&own===PL?' (Mauerstufe '+G.wall[own]+')':''));
   if(n.type==='castle'&&own===PL)add('Mauerstufe',G.wall[PL]);
   add('Entfernung zur Hauptburg','ca. '+Math.round(Math.hypot(n.x-cap.x,n.y-cap.y)/10)+' Wegeinheiten');
   const pr=pathFromTo(KINGS[PL].capital,id);
