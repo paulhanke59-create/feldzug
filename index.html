@@ -92,6 +92,7 @@ button:disabled{opacity:.45}
 .btns2{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.btns2 button{height:38px;font-size:13px}
 #card input[type=range]{touch-action:pan-y}
 #card button.big{margin-top:8px}
+#card button.x{float:right;position:sticky;top:0;width:40px;height:40px;padding:0;margin:-8px -8px 0 8px;font-size:20px;z-index:2}
 </style>
 </head>
 <body>
@@ -2022,15 +2023,24 @@ function updateHud(){
 }
 
 /* ---------- Fenster ---------- */
-function showOverlay(html){$('card').innerHTML=html;$('overlay').classList.remove('hide');$('card').scrollTop=0}
+function showOverlay(html){$('card').innerHTML=(introOpen?'':'<button class="x" id="bX" aria-label="Schließen">✕</button>')+html;$('overlay').classList.remove('hide');$('card').scrollTop=0}
 function hideOverlay(){$('overlay').classList.add('hide')}
 $('overlay').addEventListener('click',e=>{if(e.target.id==='overlay'&&G&&!G.over&&!introOpen)hideOverlay()});
 let introOpen=false;
 function closeSheet(){hideOverlay();updateHud()}
+let lastClose=0;
+function tryClose(e){
+  if(!e.target.closest||!e.target.closest('#bClose,#bX'))return;
+  if(G&&G.over)return;
+  const t=performance.now();if(t-lastClose<250)return;lastClose=t;
+  closeSheet();
+}
+$('card').addEventListener('pointerup',tryClose);
+$('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.8 · 3.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.9 · 3.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2382,6 +2392,7 @@ window.addEventListener('popstate',()=>{
   if(leaving)return;
   try{history.pushState({g:1},'');}catch(e){}
   if(!G)return;
+  if(!$('overlay').classList.contains('hide')&&!introOpen){hideOverlay();updateHud();return}
   const wasHidden=$('overlay').classList.contains('hide'),prev=$('card').innerHTML,prevIntro=introOpen;
   introOpen=true;
   showOverlay('<h1>Spiel beenden?</h1><p>Der Spielstand geht verloren. Die Zeit steht solange still.</p><button class="big main" id="bStay">Weiterspielen</button><button class="big" id="bQuit">Wirklich beenden</button>');
