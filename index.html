@@ -561,7 +561,7 @@ function newGame(){
     G.wall[k]=1;G.cnt[k]=1;
     const cap=KINGS[k].capital;
     const j=1+(KIDS.indexOf(k)%3)*0.05;
-    G.armies.push(mkArmy(k,'Hauptheer',{inf:Math.round(170*j),bow:Math.round(70*j),cav:Math.round(30*j),can:10},cap));
+    G.armies.push(mkArmy(k,'Hauptheer',{inf:Math.round(170*j),bow:Math.round(70*j),cav:Math.round(30*j),can:6,scout:4},cap));
   }
   for(const k of KIDS)G.K[k].w=adviseWeights(k);
   G.sel=sideArmies(PL)[0].id;
