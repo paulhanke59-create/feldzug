@@ -93,6 +93,7 @@ button:disabled{opacity:.45}
 #card input[type=range]{touch-action:pan-y}
 #card button.big{margin-top:8px}
 #card button.x{float:right;position:sticky;top:0;width:40px;height:40px;padding:0;margin:-8px -8px 0 8px;font-size:20px;z-index:2}
+#info button.px{float:right;width:34px;height:34px;padding:0;margin:-4px -6px 0 6px;font-size:17px}
 </style>
 </head>
 <body>
@@ -1976,7 +1977,7 @@ function nodeInfoHtml(id){
   return h;
 }
 function infoHtml(){
-  if(G.pick&&G.known[G.pick])return nodeInfoHtml(G.pick);
+  if(G.pick&&G.known[G.pick])return '<button class="px" data-act="x" aria-label="Schließen">✕</button>'+nodeInfoHtml(G.pick);
   const a=selArmy();
   if(!a)return '<b>Kein Heer</b>';
   const tip=advice()[0];
@@ -2025,7 +2026,7 @@ function updateHud(){
 }
 
 /* ---------- Fenster ---------- */
-function showOverlay(html){$('card').innerHTML=(introOpen?'':'<button class="x" id="bX" aria-label="Schließen">✕</button>')+html;$('overlay').classList.remove('hide');$('card').scrollTop=0}
+function showOverlay(html){$('card').innerHTML='<button class="x" id="bX" aria-label="Schließen">✕</button>'+html;$('overlay').classList.remove('hide');$('card').scrollTop=0}
 function hideOverlay(){$('overlay').classList.add('hide')}
 $('overlay').addEventListener('click',e=>{if(e.target.id==='overlay'&&G&&!G.over&&!introOpen)hideOverlay()});
 let introOpen=false;
@@ -2033,8 +2034,10 @@ function closeSheet(){hideOverlay();updateHud()}
 let lastClose=0;
 function tryClose(e){
   if(!e.target.closest||!e.target.closest('#bClose,#bX'))return;
-  if(G&&G.over)return;
   const t=performance.now();if(t-lastClose<250)return;lastClose=t;
+  const stay=$('bStay');if(stay){stay.click();return}
+  const s2=$('bStart2');if(s2){s2.click();return}
+  if(G&&G.over){introOpen=false;hideOverlay();return}
   closeSheet();
 }
 $('card').addEventListener('pointerup',tryClose);
@@ -2042,7 +2045,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.10 · 3.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.11 · 3.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2349,7 +2352,8 @@ $('armybar').addEventListener('click',e=>{
 $('info').addEventListener('click',e=>{
   const b=e.target.closest&&e.target.closest('button[data-act]');if(!b||!G.pick)return;
   const act=b.dataset.act,a=selArmy(),id=G.pick;
-  if(act==='go'&&a){planArmy(a,id);G.pick=null}
+  if(act==='x'){G.pick=null}
+  else if(act==='go'&&a){planArmy(a,id);G.pick=null}
   else if(act==='fort'){if(orderBuild(PL,b.dataset.v,id))logMsg(FORT[b.dataset.v].name+' bei '+NODES[id].name+' beauftragt – wirkt zum Monatsende.','good')}
   else if(act==='trade'){openTrade(id);return}
   else if(act==='info'){openNodeInfo(id);return}
