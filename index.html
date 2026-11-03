@@ -153,8 +153,8 @@ const KINGS={
   k5:{name:'Nordhaven', cap:'Burg Nordhaven',  color:'#2E8B8B',dark:'#1D5E5E'}
 };
 const UK=['inf','bow','cav','can','scout'];
-const ULAB={inf:'Fußvolk',bow:'Schützen',cav:'Reiter',can:'Kanonen',scout:'Späher'};
-const RLAB={food:'Brot',wood:'Holz',ore:'Erz',coal:'Kohle',iron:'Eisen',gold:'Gold',arms:'Waffen',bows:'Bögen',ammo:'Munition',cannons:'Kanonen'};
+const ULAB={inf:'Fußvolk',bow:'Schützen',cav:'Reiter',can:'Katapulte',scout:'Späher'};
+const RLAB={food:'Brot',wood:'Holz',ore:'Erz',coal:'Kohle',iron:'Eisen',gold:'Gold',arms:'Waffen',bows:'Bögen',ammo:'Munition',cannons:'Katapulte'};
 const TYPE_LAB={castle:'Burg',village:'Dorf',farm:'Hof mit Äckern',lumber:'Holzfällerlager',mine:'Erzmine',coal:'Kohlemine',tower:'Wachturm',ruin:'Ruine',cross:'Wegkreuz',bridge:'Brücke',pass:'Pass'};
 const ECO=['village','farm','lumber','mine','coal'];
 const isEco=n=>ECO.indexOf(n.type)>=0;
@@ -827,8 +827,8 @@ function econPlan(k,wOverride,prodOverride){
   add('ore',-u);add('coal',-u*0.5);add('iron',u);gross.iron=u;
   const prod=prodOverride||K.prod;
   if(prod==='cannons'){
-    u=Math.min(eff.smith*0.12*pm,st.iron/8,st.coal/4);
-    add('iron',-u*8);add('coal',-u*4);add('cannons',u);gross.cannons=u;gross.arms=0;
+    u=Math.min(eff.smith*0.15*pm,st.iron/4,st.wood/10);
+    add('iron',-u*4);add('wood',-u*10);add('cannons',u);gross.cannons=u;gross.arms=0;
   }else{
     u=Math.min(eff.smith*1.2*pm,st.iron,st.coal/0.4);
     add('iron',-u);add('coal',-u*0.4);add('arms',u);gross.arms=u;gross.cannons=0;
@@ -952,7 +952,7 @@ function monthEnd(){
       playerParts(plan);
       G.report=[
         'Ernte: '+Math.round(plan.gross.food)+' Brot, '+Math.round(plan.gross.wood)+' Holz, '+Math.round(plan.gross.ore)+' Erz, '+Math.round(plan.gross.coal)+' Kohle',
-        'Handwerk: '+Math.round(plan.gross.iron)+' Eisen, '+Math.round(plan.gross.arms)+' Waffen, '+Math.round(plan.gross.bows)+' Bögen, '+Math.round(plan.gross.bows*3)+' Munition'+(plan.gross.cannons>=0.05?', '+plan.gross.cannons.toFixed(1)+' Kanonen':''),
+        'Handwerk: '+Math.round(plan.gross.iron)+' Eisen, '+Math.round(plan.gross.arms)+' Waffen, '+Math.round(plan.gross.bows)+' Bögen, '+Math.round(plan.gross.bows*3)+' Munition'+(plan.gross.cannons>=0.05?', '+plan.gross.cannons.toFixed(1)+' Katapulte':''),
         'Steuern: +'+Math.round(plan.gross.gold)+' Gold · Verbrauch: '+Math.round(plan.eat)+' Brot'
       ];
       if(G.K[k].hunger>0)G.report.push('Hunger im Land! Das Volk ist unzufrieden.');
@@ -1078,11 +1078,12 @@ function terrBonus(a){
   return b;
 }
 const UPOW={inf:1.0,cav:1.5,scout:0.2};
+function siegeShare(list){let c=0,t=0;for(const z of list){c+=z.units.can;t+=troops(z)}return t?Math.min(0.7,c/t*8):0}
 function armyPower(a){
   const u=a.units;
   let s=0;for(const k in UPOW)s+=u[k]*UPOW[k];
   s+=u.bow*(a.arrows>0?1.2:0.3);
-  s+=u.can*(a.arrows>0?3.0:0.2);
+  s+=u.can*(a.arrows>0?2.6:0.2);
   if(a.food<=0)s*=0.6;
   return s;
 }
@@ -1094,8 +1095,10 @@ function resolveBattle(x,y){
   if(!PA.length||!PB.length)return;
   const ra=0.85+G.rnd()*0.3,rb=0.85+G.rnd()*0.3;
   let pa=0,pb=0;
-  for(const z of PA)pa+=armyPower(z)*terrBonus(z);
-  for(const z of PB)pb+=armyPower(z)*terrBonus(z);
+  const sgA=siegeShare(PA),sgB=siegeShare(PB);
+  const tb=(z,sg)=>{const b=terrBonus(z);return b>1?1+(b-1)*(1-sg):b};
+  for(const z of PA)pa+=armyPower(z)*tb(z,sgB);
+  for(const z of PB)pb+=armyPower(z)*tb(z,sgA);
   pa*=ra;pb*=rb;
   const aWins=pa>=pb;
   const winners=aWins?PA:PB,losers=aWins?PB:PA;
@@ -1257,7 +1260,9 @@ function aiTick(){
 }
 
 /* ---------- Simulation ---------- */
+function landShare(k){return owned(k).length/Object.keys(NODES).length}
 function secondTick(){
+  if(!G.over)for(const k of aliveKings())if(landShare(k)>=0.5){G.over={winner:k,reason:(k===PL?'Du beherrschst die Hälfte des Landes!':KINGS[k].name+' beherrscht die Hälfte des Landes.')};break}
   if(G.time>=G.nextMonth)monthEnd();
   for(const a of G.armies.slice())upkeep(a);
   fortCheck();routeChecks();
@@ -1987,10 +1992,10 @@ function showIntro(){
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
-  '<li><b>Wirtschaftsrat</b>: Schwerpunkt wählen (Waffen, Bögen, Kanonen) und Steuern. Mehr nicht.</li>'+
+  '<li><b>Wirtschaftsrat</b>: Schwerpunkt wählen (Waffen, Bögen, Katapulte) und Steuern. Mehr nicht.</li>'+
   '<li><b>Militärrat</b>: Heer, Rekruten, Befestigungen, Späher, Kriegszüge.</li>'+
   '<li>Rekruten und Bauten kommen erst zum nächsten Monatsende. Das Spiel läuft in Echtzeit (⏸ Pause, 1×/2×/4×); Fenster halten die Zeit an.</li>'+
-  '<li>Ziel: Überlebe und erobere die Hauptburgen der anderen. Fällt deine Hauptburg, ist alles verloren.</li></ul>'+
+  '<li>Ziel: <b>Erobere Land!</b> Besetze Dörfer, Äcker, Minen und Türme und nimm den Feinden ihre Orte ab. Wer die Hälfte aller Orte besitzt, gewinnt – oder wer alle Hauptburgen erobert. Fällt deine Hauptburg, ist alles verloren. <b>Katapulte</b> brechen Mauern und Schanzen.</li></ul>'+
   '<button class="big main" id="bStart">Erster Wirtschaftsrat</button><button class="big" id="bStart2">Gleich losspielen</button>');
   $('bStart').onclick=()=>{introOpen=false;openEco()};
   $('bStart2').onclick=()=>{introOpen=false;hideOverlay()};
@@ -2027,7 +2032,7 @@ function ecoForecast(){
   
   return h;
 }
-const FOCI=[['balanced','Ausgewogen','Von allem etwas'],['arms','Waffen','Mehr Schwerter und Eisen für Fußvolk und Reiter'],['bows','Bögen & Munition','Für Bogenschützen und Nachschub an Pfeilen'],['cannons','Kanonen','Schmiede bauen Kanonen (langsam, teuer)']];
+const FOCI=[['balanced','Ausgewogen','Von allem etwas'],['arms','Waffen','Mehr Schwerter und Eisen für Fußvolk und Reiter'],['bows','Bögen & Munition','Für Bogenschützen und Nachschub an Pfeilen'],['cannons','Katapulte','Schmiede bauen Belagerungs-Katapulte aus Holz und Eisen. Sie schwächen Mauern und Befestigungen des Feindes.']];
 function openEco(){
   const K=G.K[PL];
   K.w=focusWeights(PL,K.focus);
@@ -2045,7 +2050,7 @@ function openEco(){
 }
 
 /* ---------- Militärrat ---------- */
-const UNAME={inf:'Fußvolk',bow:'Bogenschützen',cav:'Reiter',can:'Kanonen',scout:'Späher'};
+const UNAME={inf:'Fußvolk',bow:'Bogenschützen',cav:'Reiter',can:'Katapulte',scout:'Späher'};
 function dirHints(){
   const cap=NODES[KINGS[PL].capital],out=[];
   const names=['Osten','Südosten','Süden','Südwesten','Westen','Nordwesten','Norden','Nordosten'];
@@ -2062,7 +2067,7 @@ function dirHints(){
 }
 function openMil(){
   const K=G.K[PL],a=selArmy();
-  let h='<h1>Militärrat</h1><p><small>Gold '+f0(K.stock.gold)+' · Waffen '+f0(K.stock.arms)+' · Bögen '+f0(K.stock.bows)+' · Munition '+f0(K.stock.ammo)+' · Kanonen '+f0(K.stock.cannons)+' · Eisen '+f0(K.stock.iron)+' · Holz '+f0(K.stock.wood)+'</small></p>';
+  let h='<h1>Militärrat</h1><p><small>Gold '+f0(K.stock.gold)+' · Waffen '+f0(K.stock.arms)+' · Bögen '+f0(K.stock.bows)+' · Munition '+f0(K.stock.ammo)+' · Katapulte '+f0(K.stock.cannons)+' · Eisen '+f0(K.stock.iron)+' · Holz '+f0(K.stock.wood)+'</small></p>';
   h+='<h2>Heere</h2>';
   for(const x of sideArmies(PL)){
     const u=UK.filter(t=>x.units[t]>0).map(t=>x.units[t]+' '+UNAME[t]).join(', ');
@@ -2195,7 +2200,7 @@ function openHelp(){
   const tips=advice().slice(0,3);
   let h='<h1>Was jetzt?</h1>';
   tips.forEach((t,i)=>{h+='<div class="row"><div>'+(i===0?'<b>'+t.text+'</b>':t.text)+'</div>'+(t.go&&t.go.node?'<button data-i="'+i+'">Hin</button>':'')+'</div>'});
-  h+='<h2>Kurz erklärt</h2><ul><li>Du bist der König. Wirtschaftsrat: Schwerpunkt und Steuern. Militärrat: Heer, Rekruten, Befestigungen, Späher.</li><li>Zum Monatsende liefern deine Orte Ernte und Gold, bestellte Rekruten und Bauten werden fertig.</li><li>Dein Heer isst ständig; die grüne Linie zeigt den Nachschub aus der Burg.</li><li>Alle anderen Königreiche sind Feinde. Besetze freie Orte, erobere ihre Hauptburgen.</li></ul>';
+  h+='<h2>Kurz erklärt</h2><ul><li>Du bist der König. Wirtschaftsrat: Schwerpunkt und Steuern. Militärrat: Heer, Rekruten, Befestigungen, Späher.</li><li>Zum Monatsende liefern deine Orte Ernte und Gold, bestellte Rekruten und Bauten werden fertig.</li><li>Dein Heer isst ständig; die grüne Linie zeigt den Nachschub aus der Burg.</li><li>Alle anderen Königreiche sind Feinde. Ziel: Land erobern (Hälfte aller Orte) oder alle Hauptburgen nehmen.</li></ul>';
   h+='<button class="big" id="bClose">Schließen</button>';
   showOverlay(h);
   $('card').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{
