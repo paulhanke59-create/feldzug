@@ -524,7 +524,9 @@ function sightOf(a){
 }
 const KP=k=>G.K[k];
 const owned=k=>Object.keys(NODES).filter(id=>G.own[id]===k);
-const lvlF=id=>NODES[id].type==='castle'?1:0.6+0.2*(G.lvl[id]||1);
+const lvlF=id=>(NODES[id].type==='castle'?1:0.6+0.2*(G.lvl[id]||1))*(G.pf[id]||1);
+const popN=id=>Math.round((POPN[NODES[id].type]||0)*lvlF(id));
+const capsOf=id=>{const cn=CAPN[NODES[id].type],o={};if(cn)for(const x in cn)o[x]=Math.round(cn[x]*lvlF(id));return o};
 const popOf=k=>{let s=0;for(const id of owned(k))s+=(POPN[NODES[id].type]||0)*lvlF(id);return Math.round(s)};
 const aliveKings=()=>KIDS.filter(k=>G.K[k].alive);
 const sideArmies=side=>G.armies.filter(a=>a.alive&&a.side===side);
@@ -569,12 +571,12 @@ function newGame(){
   G.sel=sideArmies(PL)[0].id;
   buildBackground(seed);
   for(const id in NODES)G.known[id]=null;
-  G.vgar={};G.lvl={};G.mood={};G.dev={};G.devLog=[];
-  for(const id in NODES){if(NODES[id].type==='castle')continue;G.lvl[id]=G.own[id]?2:1;G.mood[id]=G.own[id]?70:50;G.dev[id]=0}
+  G.vgar={};G.vgot={};G.pf={};G.lvl={};G.mood={};G.dev={};G.devLog=[];
+  for(const id in NODES){G.pf[id]=0.82+G.rnd()*0.36;if(NODES[id].type==='castle')continue;G.lvl[id]=G.own[id]?2:1;G.mood[id]=G.own[id]?70:50;G.dev[id]=0}
   for(const id in NODES){
     if(NODES[id].type!=='village')continue;
     const n=6+Math.floor(G.rnd()*6),ow=G.own[id];
-    if(ow){G.K[ow].gar.inf+=n}else G.vgar[id]=n;
+    if(ow){G.K[ow].gar.inf+=n;G.vgot[id]=n}else G.vgar[id]=n;
   }
   for(const k of KIDS)G.K[k].w=adviseWeights(k);
   const cp=NODES[KINGS[PL].capital];
@@ -643,7 +645,7 @@ function refreshKnown(){
     const first=!G.known[id];
     G.known[id]={owner:G.own[id]};
     if(first&&G.vgar&&G.vgar[id]>0&&!G.own[id]){
-      const m=G.vgar[id];G.vgar[id]=0;G.K[PL].gar.inf+=m;
+      const m=G.vgar[id];G.vgar[id]=0;G.K[PL].gar.inf+=m;G.vgot[id]=m;
       logMsg(n.name+' entdeckt: '+m+' Mann Dorfwache schließen sich dir an.','good');
     }
     G.knownFort[id]=G.fort[id]?{type:G.fort[id].type,owner:G.fort[id].owner}:null;
@@ -749,7 +751,7 @@ function occupy(a,n){
   if(G.lvl[n.id]){G.lvl[n.id]=Math.max(1,G.lvl[n.id]-1);G.mood[n.id]=25;G.dev[n.id]=0}
   if(G.fort[n.id]&&G.fort[n.id].owner!==side)delete G.fort[n.id];
   a.occ=(a.occ||0)+1;
-  if(G.vgar[n.id]>0){G.K[side].gar.inf+=G.vgar[n.id];if(side===PL)logMsg(G.vgar[n.id]+' Mann Dorfwache aus '+n.name+' schließen sich dir an.','good');G.vgar[n.id]=0}
+  if(G.vgar[n.id]>0){G.vgot[n.id]=G.vgar[n.id];G.K[side].gar.inf+=G.vgar[n.id];if(side===PL)logMsg(G.vgar[n.id]+' Mann Dorfwache aus '+n.name+' schließen sich dir an.','good');G.vgar[n.id]=0}
   if(side===PL){logMsg(n.name+' gehört jetzt zu deinem Reich'+(prev?' (von '+KINGS[prev].name+' erobert)':'')+'.','good');refreshKnown()}
   else if(prev===PL)logMsg(n.name+' wurde von '+KINGS[side].name+' erobert!','bad');
   else if(visibleAt(PL,n.x,n.y))logMsg(KINGS[side].name+' besetzt '+n.name+'.','dim');
@@ -1952,7 +1954,7 @@ function nodeInfoHtml(id){
   if(own===PL&&G.lvl[id]){const mi=Math.round(G.mood[id]);h+='<div class="tag">Stufe '+G.lvl[id]+' von 5 · Stimmung '+mi+' % '+(G.mood[id]>=60?'(wächst)':G.mood[id]<40?'(verfällt)':'(stabil)')+'</div>'}
   if(own===PL){
     const cn=CAPN[n.type];
-    h+='<div class="tag">Einwohner ca. '+(POPN[n.type]||0)+(cn?' · Arbeitsplätze: '+Object.keys(cn).map(x=>({farm:'Feld',wood:'Holz',ore:'Erz',coal:'Kohle',craft:'Handwerk'}[x])+' '+cn[x]).join(', '):'')+'</div>';
+    h+='<div class="tag">Einwohner '+popN(id)+(cn?' · Arbeitsplätze: '+Object.entries(capsOf(id)).map(([x,v])=>({farm:'Feld',wood:'Holz',ore:'Erz',coal:'Kohle',craft:'Handwerk'}[x])+' '+v).join(', '):'')+'</div>';
   }
   const kf=G.knownFort[id];
   if(kf)h+='<div class="tag">'+FORT[kf.type].name+' ('+KINGS[kf.owner].name+')</div>';
@@ -2040,7 +2042,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.9 · 3.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.10 · 3.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2195,13 +2197,13 @@ function openNodeInfo(id){
   add('Herrscher',own?KINGS[own].name+(own===PL?' (du)':''):'niemand');
   const vague=own!==PL;
   const pp=POPN[n.type]||0;
-  add('Einwohner',vague?(pp>=400?'viele, vermutlich mehrere Hundert':pp>=200?'einige Hundert':'wenige, vielleicht ein paar Dutzend'):'ca. '+pp);
+  add('Einwohner',vague?(pp>=400?'viele, vermutlich mehrere Hundert':pp>=200?'einige Hundert':'wenige, vielleicht ein paar Dutzend'):popN(id));
   const cn=CAPN[n.type];
   if(cn&&vague)add('Arbeitsplätze','unbekannt – erst nach Besetzung einsehbar');
-  else if(cn)add('Arbeitsplätze',Object.keys(cn).map(x=>({farm:'Feld',wood:'Holz',ore:'Erz',coal:'Kohle',craft:'Handwerk'}[x])+' '+cn[x]).join(', '));
+  else if(cn){const cc=capsOf(id);add('Arbeitsplätze',Object.keys(cc).map(x=>({farm:'Feld',wood:'Holz',ore:'Erz',coal:'Kohle',craft:'Handwerk'}[x])+' '+cc[x]).join(', '))}
   if(n.type==='village'){
     const g=G.vgar[id]||0;
-    add('Dorfwache',own===PL?'bereits bei deinem Heer':own?'vermutlich ein paar Männer':(g>0?'ein paar Männer, wohl nicht viele':'keine mehr'));
+    add('Dorfwache',own===PL?(G.vgot[id]?G.vgot[id]+' Mann, bereits bei deinem Heer':'bereits bei deinem Heer'):own?'vermutlich ein paar Männer':(g>0?'ein paar Männer, wohl nicht viele':'keine mehr'));
   }
   if(own&&G.lvl[id]){
     if(own!==PL)add('Wohlstand',G.lvl[id]>=4?'wohl wohlhabend':G.lvl[id]>=3?'durchschnittlich':'eher bescheiden');
@@ -2209,7 +2211,7 @@ function openNodeInfo(id){
     if(own===PL){const mi=moodInfo(id);add('Stimmung',Math.round(G.mood[id])+' % (Ziel '+Math.round(mi.target)+' %)');add('Einflüsse',mi.reasons.map(x=>x[0]+' '+(x[1]>=0?'+':'')+x[1]).join(', '))}
   }
   const f=G.knownFort[id];
-  add('Befestigung',f?FORT[f.type].name:'keine sichtbar'+(n.type==='castle'&&own===PL?' (Mauerstufe '+G.wall[own]+')':''));
+  add('Befestigung',f?FORT[f.type].name:(own===PL?'keine':'keine sichtbar')+(n.type==='castle'&&own===PL?' (Mauerstufe '+G.wall[own]+')':''));
   if(n.type==='castle'&&own===PL)add('Mauerstufe',G.wall[PL]);
   add('Entfernung zur Hauptburg','ca. '+Math.round(Math.hypot(n.x-cap.x,n.y-cap.y)/10)+' Wegeinheiten');
   const pr=pathFromTo(KINGS[PL].capital,id);
