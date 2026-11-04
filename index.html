@@ -642,7 +642,8 @@ function refreshKnown(){
   for(const id in NODES){
     const n=NODES[id];
     let v=false;for(const s of src)if(Math.hypot(s.x-n.x,s.y-n.y)<s.r){v=true;break}
-    if(!v)continue;
+    if(!v&&G.known[id])continue;
+    if(!v&&!(G.own[id]===PL||isExplored(n.x,n.y)))continue;
     const first=!G.known[id];
     G.known[id]={owner:G.own[id]};
     if(first&&G.vgar&&G.vgar[id]>0&&!G.own[id]){
@@ -1813,7 +1814,7 @@ function render(){
   for(const a of sideArmies(PL))if(a!==sa)drawRoute(a,false);
   drawRoute(sa,true);
   let pv=null;
-  if(sa&&G.pick&&G.pick!==sa.at&&!(sa.dest===G.pick&&sa.path.length)&&G.known[G.pick]){pv=previewSegs(sa,G.pick);if(pv){ctx.globalAlpha=.7;drawRoute(sa,true,pv.segs);ctx.globalAlpha=1}}
+  if(sa&&G.pick&&G.pick!==sa.at&&!(sa.dest===G.pick&&sa.path.length)){pv=previewSegs(sa,G.pick);if(pv){ctx.globalAlpha=.7;drawRoute(sa,true,pv.segs);ctx.globalAlpha=1}}
   const k=nodeK();
   const order=Object.keys(NODES).filter(id=>G.known[id]).sort((p,q)=>NODES[p].y-NODES[q].y);
   const vorder=[];
@@ -1836,7 +1837,7 @@ function render(){
     ctx.save();ctx.translate(n.x,n.y);ctx.scale(k,k);ctx.strokeStyle='#E0A526';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.lineDashOffset=-ANIM_T*10;
     ctx.beginPath();ctx.arc(0,2,34,0,6.283);ctx.stroke();ctx.restore();
   }
-  if(G.pick&&G.known[G.pick]){
+  if(G.pick){
     const n=NODES[G.pick];
     ctx.strokeStyle='rgba(232,185,60,'+(0.6+0.4*Math.sin(ANIM_T*5))+')';ctx.lineWidth=3/view.s;
     ctx.beginPath();ctx.arc(n.x,n.y,(34+Math.sin(ANIM_T*5)*2)*k,0,6.283);ctx.stroke();
@@ -1899,7 +1900,7 @@ function drawEdgesKnown(){
   ctx.lineCap='round';ctx.lineJoin='round';
   const vx0=-view.x/view.s-100,vy0=-view.y/view.s-100,vx1=vx0+cw/view.s+200,vy1=vy0+ch/view.s+200;
   for(const e of EDGES){
-    if(!G.known[e.a]||!G.known[e.b])continue;
+    if(!G.known[e.a]&&!G.known[e.b])continue;
     const A=NODES[e.a],B=NODES[e.b];
     if(Math.max(A.x,B.x)<vx0||Math.min(A.x,B.x)>vx1||Math.max(A.y,B.y)<vy0||Math.min(A.y,B.y)>vy1)continue;
     ctx.setLineDash([]);
@@ -1977,6 +1978,10 @@ function nodeInfoHtml(id){
   return h;
 }
 function infoHtml(){
+  if(G.pick&&!G.known[G.pick]){
+    const a0=selArmy(),pv=a0&&previewSegs(a0,G.pick);
+    return '<button class="px" data-act="x" aria-label="Schließen">✕</button><div class="ih"><b>Unerforschtes Gebiet</b></div><div class="tag">Hier ist noch nichts bekannt. Schicke Späher oder ein Heer hin.</div><div class="btns">'+(pv?'<button class="go" data-act="go">Dorthin marschieren · ca. '+Math.ceil(pv.secs)+' s</button>':'<span class="bad">Nicht erreichbar</span>')+'</div>';
+  }
   if(G.pick&&G.known[G.pick])return '<button class="px" data-act="x" aria-label="Schließen">✕</button>'+nodeInfoHtml(G.pick);
   const a=selArmy();
   if(!a)return '<b>Kein Heer</b>';
@@ -2040,12 +2045,11 @@ function tryClose(e){
   if(G&&G.over){introOpen=false;hideOverlay();return}
   closeSheet();
 }
-$('card').addEventListener('pointerup',tryClose);
 $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.11 · 3.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.12 · 3.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2295,12 +2299,15 @@ function handleTap(px,py){
   const wx=(px-view.x)/view.s,wy=(py-view.y)/view.s;
   const k=nodeK();
   let best=null,bd=Infinity;
+  let bu=null,bud=Infinity;
   for(const id in NODES){
-    if(!G.known[id])continue;
     const d=Math.hypot(NODES[id].x-wx,NODES[id].y-wy);
-    if(d<bd){bd=d;best=id}
+    if(G.known[id]){if(d<bd){bd=d;best=id}}
+    else if(d<bud){bud=d;bu=id}
   }
-  G.pick=(best&&bd<38*k)?best:null;
+  if(best&&bd<38*k)G.pick=best;
+  else if(bu&&bud<260&&!isExplored(wx,wy))G.pick=bu;
+  else G.pick=null;
   updateHud();
 }
 const ptrs=new Map();let tapStart=null,pinch=null;
