@@ -94,21 +94,32 @@ button:disabled{opacity:.45}
 #card button.big{margin-top:8px}
 #card button.x{float:right;position:sticky;top:0;width:40px;height:40px;padding:0;margin:-8px -8px 0 8px;font-size:20px;z-index:2}
 #info button.px{float:right;width:34px;height:34px;padding:0;margin:-4px -6px 0 6px;font-size:17px}
-#miniBox{position:fixed;left:10px;bottom:260px;z-index:5;width:96px;pointer-events:none}#mini{position:static!important;inset:auto!important;width:96px;height:96px;border:2px solid #5a4630;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.5);pointer-events:auto;display:block}#miniLbl{font:bold 11px Georgia,serif;color:#f1e3b8;text-shadow:0 1px 2px #000;margin-top:2px;text-align:center}
+.top{display:flex;gap:6px;align-items:stretch}
+.tile{background:rgba(0,0,0,.26);border:1px solid rgba(214,176,98,.45);border-radius:10px;padding:3px}
+#miniBox{flex:0 0 112px;padding:3px 3px 2px;text-align:center}
+#mini{position:static!important;inset:auto!important;width:104px;height:104px;border-radius:7px;border:1px solid #1a120a;display:block;margin:0 auto;touch-action:manipulation}
+#miniLbl{font-size:10.5px;color:#f6e8c6;margin-top:2px;white-space:nowrap}
+.side{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.cal2{display:flex;justify-content:space-between;align-items:center;padding:3px 6px}
+.cal2 .cal{display:flex;flex-direction:column;margin:0;font-size:13px;line-height:1.15}
+.cal2 .cal span:last-child{font-size:11px;opacity:.8}
+.spd{flex-direction:row!important}
+.mbar{margin:0}
+.grid4{display:grid;grid-template-columns:1fr 1fr;gap:4px;flex:1}
+.grid4 .rc{padding:2px 4px}
 </style>
 </head>
 <body>
 <canvas id="map"></canvas>
 
 <div id="hud" class="panel">
-  <div class="cal"><span id="dDate"></span><span id="dLeft"></span></div>
-  <div class="mbar"><i id="dBar"></i></div>
-  <div class="res">
-    <div class="rc" id="rGold"><svg viewBox="0 0 32 32"><rect x="3" y="14" width="26" height="14" rx="2" fill="#8a5a2b" stroke="#4a2c12"/><path d="M3 14Q3 5 16 5Q29 5 29 14Z" fill="#a8703a" stroke="#4a2c12"/><rect x="3" y="14" width="26" height="3" fill="#e0b13a"/><rect x="14" y="13" width="4" height="8" rx="1" fill="#e0b13a" stroke="#6a4a0a"/><circle cx="10" cy="9" r="2.2" fill="#f5d04c"/><circle cx="21" cy="8" r="2" fill="#f5d04c"/></svg><div><b id="vGold">0</b><small id="iGold"></small></div></div>
-    <div class="rc" id="rFood"><svg viewBox="0 0 32 32"><ellipse cx="16" cy="19" rx="12" ry="8" fill="#d79b4a" stroke="#7a4a16"/><path d="M9 16l3 4M15 14l3 5M21 15l3 4" stroke="#8a5a20" stroke-width="1.6" fill="none"/><path d="M8 11Q16 4 24 11" stroke="#e8c36a" stroke-width="2" fill="none"/></svg><div><b id="vFood">0</b><small id="iFood"></small></div></div>
-    <div class="rc" id="rIron"><svg viewBox="0 0 32 32"><path d="M2 28L12 8l6 10 4-6 8 16z" fill="#8f877a" stroke="#4a4338"/><path d="M12 8l-3 6 3 2 3-2z" fill="#f2efe6"/><path d="M20 22l3-4 4 5z" fill="#5d7c96"/><circle cx="21" cy="14" r="1.6" fill="#9ec1db"/></svg><div><b id="vIron">0</b><small id="iIron"></small></div></div>
-    <div class="rc" id="rWood"><svg viewBox="0 0 32 32"><rect x="3" y="18" width="26" height="8" rx="4" fill="#a9794a" stroke="#5a3e22"/><rect x="5" y="9" width="22" height="8" rx="4" fill="#b88650" stroke="#5a3e22"/><ellipse cx="27" cy="22" rx="2" ry="3.5" fill="#d2a872" stroke="#5a3e22"/><ellipse cx="25" cy="13" rx="2" ry="3.5" fill="#d2a872" stroke="#5a3e22"/></svg><div><b id="vWood">0</b><small id="iWood"></small></div></div>
-    <div class="spd"><button class="wood" id="bPlay" aria-label="Pause">⏸</button><button class="wood" id="bSpd" aria-label="Tempo">1×</button></div>
+  <div class="top">
+    <div class="tile" id="miniBox"><canvas id="mini" width="224" height="224"></canvas><div id="miniLbl"></div></div>
+    <div class="side">
+      <div class="tile cal2"><div class="cal"><span id="dDate"></span><span id="dLeft"></span></div><div class="spd"><button class="wood" id="bPlay" aria-label="Pause">⏸</button><button class="wood" id="bSpd" aria-label="Tempo">1×</button></div></div>
+      <div class="mbar"><i id="dBar"></i></div>
+      <div class="grid4"><div class="rc" id="rGold"><svg viewBox="0 0 32 32"><rect x="3" y="14" width="26" height="14" rx="2" fill="#8a5a2b" stroke="#4a2c12"/><path d="M3 14Q3 5 16 5Q29 5 29 14Z" fill="#a8703a" stroke="#4a2c12"/><rect x="3" y="14" width="26" height="3" fill="#e0b13a"/><rect x="14" y="13" width="4" height="8" rx="1" fill="#e0b13a" stroke="#6a4a0a"/><circle cx="10" cy="9" r="2.2" fill="#f5d04c"/><circle cx="21" cy="8" r="2" fill="#f5d04c"/></svg><div><b id="vGold">0</b><small id="iGold"></small></div></div><div class="rc" id="rFood"><svg viewBox="0 0 32 32"><ellipse cx="16" cy="19" rx="12" ry="8" fill="#d79b4a" stroke="#7a4a16"/><path d="M9 16l3 4M15 14l3 5M21 15l3 4" stroke="#8a5a20" stroke-width="1.6" fill="none"/><path d="M8 11Q16 4 24 11" stroke="#e8c36a" stroke-width="2" fill="none"/></svg><div><b id="vFood">0</b><small id="iFood"></small></div></div><div class="rc" id="rIron"><svg viewBox="0 0 32 32"><path d="M2 28L12 8l6 10 4-6 8 16z" fill="#8f877a" stroke="#4a4338"/><path d="M12 8l-3 6 3 2 3-2z" fill="#f2efe6"/><path d="M20 22l3-4 4 5z" fill="#5d7c96"/><circle cx="21" cy="14" r="1.6" fill="#9ec1db"/></svg><div><b id="vIron">0</b><small id="iIron"></small></div></div><div class="rc" id="rWood"><svg viewBox="0 0 32 32"><rect x="3" y="18" width="26" height="8" rx="4" fill="#a9794a" stroke="#5a3e22"/><rect x="5" y="9" width="22" height="8" rx="4" fill="#b88650" stroke="#5a3e22"/><ellipse cx="27" cy="22" rx="2" ry="3.5" fill="#d2a872" stroke="#5a3e22"/><ellipse cx="25" cy="13" rx="2" ry="3.5" fill="#d2a872" stroke="#5a3e22"/></svg><div><b id="vWood">0</b><small id="iWood"></small></div></div></div>
+    </div>
   </div>
   <div class="r2"><span id="aname"></span><span id="sup"></span></div>
   <div class="bars">
@@ -133,7 +144,6 @@ button:disabled{opacity:.45}
   <button id="bHelp" aria-label="Hilfe">?</button>
 </div>
 
-<div id="miniBox"><canvas id="mini" width="120" height="120"></canvas><div id="miniLbl"></div></div>
 <div id="overlay"><div id="card"></div></div>
 
 <script>
@@ -571,7 +581,7 @@ function buildBackground(seed){
 /* ============================================================
    SPIELZUSTAND
    ============================================================ */
-const TURN_S=10, AI_DT=3, MAX_ROUTES=3;
+const TURN_S=10, AI_DT=3, MAX_ROUTES=8;
 const DAY_S=3, MONTH_DAYS=30, MONTH_S=DAY_S*MONTH_DAYS;
 const MONTHS=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 function dateInfo(t){
@@ -604,6 +614,7 @@ const FORT={
   schanze:{name:'Feldschanze',cost:{wood:30,gold:40},desc:'Palisade: Verteidigung +30 %'},
   turm:   {name:'Wachturm',cost:{wood:60,gold:80,iron:20},desc:'Verteidigung +35 %, weite Sicht'},
   ausbau: {name:'Dorf fördern',cost:{wood:40,gold:60},desc:'Mehr Wohlstand: Ort steigt schneller auf'},
+  strasse:{name:'Straße',cost:{},desc:'Ausbau eines Weges zur Straße'},
   mauer:  {name:'Burgmauer ausbauen',cost:{wood:80,iron:30,gold:100},desc:'Die Burg wird stärker (bis Stufe 3)'}
 };
 const blankUnits=()=>{const u={};for(const k of UK)u[k]=0;return u};
@@ -1003,6 +1014,11 @@ function deliverOrders(k){
     K.gar[t]+=RECR[t].n*n;K.orders.rec[t]=0;
   }
   for(const b of K.orders.build){
+    if(b.kind==='strasse'){
+      const e=EMAP[b.edge];
+      if(e&&G.own[e.a]===k&&G.own[e.b]===k){applyEdge(e,'road',e.ford?e.fordT:0);if(k===PL)logMsg('Straße '+NODES[e.a].name+' – '+NODES[e.b].name+' ist fertig.','good')}
+      continue;
+    }
     if(G.own[b.node]!==k)continue;
     if(b.kind==='ausbau'){G.dev[b.node]+=4;G.mood[b.node]=Math.min(100,G.mood[b.node]+10);bumpLevel(b.node,k)}
     else if(b.kind==='mauer')G.wall[k]=Math.min(3,G.wall[k]+1);
@@ -1033,9 +1049,27 @@ function orderBuild(k,kind,node){
   if(!buildAllowed(k,kind,node)||!canPay(k,FORT[kind].cost))return false;
   pay(k,FORT[kind].cost);G.K[k].orders.build.push({kind,node});return true;
 }
+const roadCost=e=>({wood:Math.ceil(e.len/5),gold:Math.ceil(e.len/4)});
+const buildLabel=b=>{if(b.kind==='strasse'){const e=EMAP[b.edge];return 'Straße '+NODES[e.a].name+' – '+NODES[e.b].name}return FORT[b.kind].name+(b.kind==='mauer'?'':' bei '+NODES[b.node].name)};
+function roadPending(k,e){return G.K[k].orders.build.some(b=>b.kind==='strasse'&&EMAP[b.edge]===e)}
+/* Ist 'A' von der Hauptburg aus auf Straßen erreichbar? Sonst: erste Lücke */
+function roadGap(k,A){
+  const home=KINGS[k].capital,seen=new Set([home]),q=[home];
+  while(q.length){const u=q.shift();if(u===A)return null;for(const {to,e} of ADJ[u]){if(e.type==='road'&&!seen.has(to)&&G.own[to]===k){seen.add(to);q.push(to)}}}
+  const pr=pathFromTo(home,A);
+  if(!pr)return{from:home,to:A};
+  let prev=home;
+  for(const n of pr.path){const e=EMAP[prev+'|'+n];if(e.type!=='road')return{from:prev,to:n};prev=n}
+  return{from:home,to:A};
+}
+function orderRoad(k,e,fromNode){
+  if(e.type==='road'||roadPending(k,e)||G.own[e.a]!==k||G.own[e.b]!==k)return false;
+  const c=roadCost(e);if(!canPay(k,c))return false;
+  pay(k,c);G.K[k].orders.build.push({kind:'strasse',edge:e.a<e.b?e.a+'|'+e.b:e.b+'|'+e.a,node:fromNode,cost:c});return true;
+}
 function cancelBuild(k,idx){
   const b=G.K[k].orders.build[idx];if(!b)return;
-  refund(k,FORT[b.kind].cost);G.K[k].orders.build.splice(idx,1);
+  refund(k,b.cost||FORT[b.kind].cost);G.K[k].orders.build.splice(idx,1);
 }
 function absorbGarrison(k){
   const K=G.K[k];let gc=0;for(const u of UK)gc+=K.gar[u];
@@ -2047,37 +2081,38 @@ const mm2=document.createElement('canvas');mm2.width=mm2.height=mini.width;
 function drawMini(){
   const S=mini.width,f=S/W;
   mctx.clearRect(0,0,S,S);
-  mctx.fillStyle='#2b4654';mctx.fillRect(0,0,S,S);
-  const ip=islandPts(90);
-  const ipath=()=>{mctx.beginPath();ip.forEach((p,i)=>i?mctx.lineTo(p.x*f,p.y*f):mctx.moveTo(p.x*f,p.y*f));mctx.closePath()};
-  ipath();mctx.fillStyle='#6f6247';mctx.fill();
-  mctx.save();ipath();mctx.clip();
+  mctx.fillStyle='#35596a';mctx.fillRect(0,0,S,S);
+  mctx.imageSmoothingEnabled=true;mctx.imageSmoothingQuality='high';
+  mctx.drawImage(bg,0,0,W,H,0,0,S,S);
+  /* Unerkundetes abdunkeln */
   const m2=mm2.getContext('2d');
-  m2.globalCompositeOperation='source-over';m2.clearRect(0,0,S,S);m2.fillStyle='#d6c394';m2.fillRect(0,0,S,S);
-  m2.globalCompositeOperation='destination-in';m2.imageSmoothingEnabled=true;m2.drawImage(explCv,0,0,GW,GW,0,0,S,S);
+  m2.globalCompositeOperation='source-over';m2.clearRect(0,0,S,S);m2.fillStyle='rgba(22,16,9,.66)';m2.fillRect(0,0,S,S);
+  m2.globalCompositeOperation='destination-out';m2.imageSmoothingEnabled=true;m2.drawImage(explCv,0,0,GW,GW,0,0,S,S);
   mctx.drawImage(mm2,0,0);
+  /* Eigenes Gebiet */
   for(const id in NODES){
     if(G.own[id]!==PL||!G.known[id])continue;
-    const n=NODES[id],rr=20*S/120;
+    const n=NODES[id],rr=22*S/120;
     const gr=mctx.createRadialGradient(n.x*f,n.y*f,0,n.x*f,n.y*f,rr);
-    gr.addColorStop(0,KINGS[PL].color+'cc');gr.addColorStop(1,KINGS[PL].color+'00');
+    gr.addColorStop(0,KINGS[PL].color+'dd');gr.addColorStop(.6,KINGS[PL].color+'88');gr.addColorStop(1,KINGS[PL].color+'00');
     mctx.fillStyle=gr;mctx.beginPath();mctx.arc(n.x*f,n.y*f,rr,0,6.283);mctx.fill();
   }
-  mctx.restore();
-  ipath();mctx.strokeStyle='#e5d6a8';mctx.lineWidth=1.2;mctx.stroke();
+  /* Hauptburgen als kleine Burgen */
   for(const k of KIDS){
-    const n=NODES[KINGS[k].capital];
-    const mine=k===PL,dead=!G.K[k].alive;
-    mctx.fillStyle=dead?'#555':KINGS[k].color;mctx.strokeStyle=mine?'#fff':'#1a120a';mctx.lineWidth=mine?2:1.4;
-    const s=mine?5:4.2;
-    mctx.beginPath();mctx.rect(n.x*f-s,n.y*f-s,s*2,s*2);mctx.fill();mctx.stroke();
+    const n=NODES[KINGS[k].capital],x=n.x*f,y=n.y*f,mine=k===PL,dead=!G.K[k].alive,u=S/120;
+    mctx.save();mctx.translate(x,y);mctx.scale(u,u);
+    mctx.fillStyle=dead?'#666':KINGS[k].color;mctx.strokeStyle=mine?'#ffe9a0':'#1a120a';mctx.lineWidth=mine?2:1.4;
+    mctx.beginPath();mctx.moveTo(-6,5);mctx.lineTo(-6,-3);mctx.lineTo(-6,-6);mctx.lineTo(-3.5,-6);mctx.lineTo(-3.5,-4);mctx.lineTo(-1.5,-4);mctx.lineTo(-1.5,-6);mctx.lineTo(1.5,-6);mctx.lineTo(1.5,-4);mctx.lineTo(3.5,-4);mctx.lineTo(3.5,-6);mctx.lineTo(6,-6);mctx.lineTo(6,5);mctx.closePath();
+    mctx.fill();mctx.stroke();
+    mctx.fillStyle='#1a120a';mctx.fillRect(-1.3,0,2.6,5);
+    mctx.restore();
   }
-  for(const a of sideArmies(PL)){const p=armyPos(a);mctx.fillStyle='#fff';mctx.beginPath();mctx.arc(p.x*f,p.y*f,1.8,0,6.283);mctx.fill()}
-  mctx.strokeStyle='rgba(255,255,255,.9)';mctx.lineWidth=1.2;
+  for(const a of sideArmies(PL)){const p=armyPos(a);mctx.fillStyle='#fff';mctx.strokeStyle='#000';mctx.lineWidth=.8;mctx.beginPath();mctx.arc(p.x*f,p.y*f,2.4,0,6.283);mctx.fill();mctx.stroke()}
+  mctx.strokeStyle='rgba(255,255,255,.95)';mctx.lineWidth=1.6;
   mctx.strokeRect((-view.x/view.s)*f,(-view.y/view.s)*f,(cw/view.s)*f,(ch/view.s)*f);
-  $('miniLbl').textContent='Insel '+Math.round(landShare(PL)*100)+' % dein';
-  const bh=$('bottom').getBoundingClientRect().height;
-  $('miniBox').style.bottom=(bh+68)+'px';
+  $('miniLbl').textContent='Insel: '+Math.round(landShare(PL)*100)+' % dein';
+  const hb=$('hud').getBoundingClientRect().bottom;
+  $('log').style.top=(hb+6)+'px';
 }
 mini.addEventListener('click',e=>{
   const r=mini.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;
@@ -2113,6 +2148,11 @@ function nodeInfoHtml(id){
       if(ok||G.fort[id]===undefined)h+='<button data-act="fort" data-v="'+kd+'"'+(ok&&canPay(PL,FORT[kd].cost)?'':' disabled')+'>'+FORT[kd].name+' · '+costText(FORT[kd].cost)+'</button>';
     }
   }
+  if(own===PL&&a&&a.at===id)for(const {to,e} of ADJ[id]){
+    if(G.own[to]!==PL||e.type==='road'||roadPending(PL,e))continue;
+    const c=roadCost(e);
+    h+='<button data-act="road" data-v="'+to+'">Straße nach '+NODES[to].name+' · '+costText(c)+'</button>';
+  }
   if(own===PL&&buildAllowed(PL,'ausbau',id))h+='<button data-act="fort" data-v="ausbau"'+(canPay(PL,FORT.ausbau.cost)?'':' disabled')+'>Dorf fördern · '+costText(FORT.ausbau.cost)+'</button>';
   if(own===PL&&(isEco(n)||n.type==='castle'))h+='<button data-act="trade">Handel</button>';
   h+='<button data-act="info">Dorfinfo</button>';
@@ -2145,7 +2185,7 @@ function updateHud(){
   }
   const di=dateInfo(G.time);
   $('dDate').innerHTML='<b>'+di.day+'. '+di.month+' '+di.year+'</b>';
-  $('dLeft').textContent='Monatsende in '+di.left+' Tag'+(di.left===1?'':'en');
+  $('dLeft').textContent='Monatsende in '+di.left+' T.';
   $('dBar').style.width=Math.round(di.frac*100)+'%';
   $('dDate').parentNode.classList.toggle('flash',now-G.monthFlash<600);
   for(const [k,id] of [['gold','rGold'],['food','rFood'],['iron','rIron'],['wood','rWood']])$(id).classList.toggle('bump',now-(bump[k]||-9999)<450);
@@ -2192,7 +2232,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.19 · 7.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.20 · 7.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2300,7 +2340,7 @@ function openMil(){
   h+='<h2>Befestigungen</h2>';
   const mOk=buildAllowed(PL,'mauer',KINGS[PL].capital);
   h+='<div class="row"><div><b>'+FORT.mauer.name+'</b> (Stufe '+G.wall[PL]+')<br><small>'+costText(FORT.mauer.cost)+'</small></div><button data-fm="1"'+(mOk&&canPay(PL,FORT.mauer.cost)?'':' disabled')+'>Bauen</button></div>';
-  K.orders.build.forEach((b,i)=>{h+='<div class="row"><div>Geplant: '+FORT[b.kind].name+(b.kind==='mauer'?'':' bei '+NODES[b.node].name)+'</div><button data-bc="'+i+'">Abbrechen</button></div>'});
+  K.orders.build.forEach((b,i)=>{h+='<div class="row"><div>Geplant: '+buildLabel(b)+'</div><button data-bc="'+i+'">Abbrechen</button></div>'});
   h+='<p><small>Feldschanzen und Wachtürme: eigenen Ort auf der Karte antippen.</small></p>';
   h+='<h2>Das Land</h2>';
   h+='<p><small>Erkundet: '+exploredPct()+' %.</small></p>';
@@ -2505,6 +2545,12 @@ $('info').addEventListener('click',e=>{
   if(act==='x'){G.pick=null}
   else if(act==='go'&&a){planArmy(a,id);G.pick=null}
   else if(act==='fort'){if(orderBuild(PL,b.dataset.v,id))logMsg(FORT[b.dataset.v].name+' bei '+NODES[id].name+' beauftragt – wirkt zum Monatsende.','good')}
+  else if(act==='road'){
+    const to=b.dataset.v,e=EMAP[id+'|'+to],gap=roadGap(PL,id);
+    if(gap){showOverlay('<h1>Straße nicht möglich</h1><p>Zuerst muss der Weg nach <b>'+NODES[gap.to].name+'</b> ausgebaut werden (von '+NODES[gap.from].name+'). Nur über eine Straße kommen Material und Arbeiter dorthin.</p><button class="big" id="bClose">Verstanden</button>');return}
+    if(!canPay(PL,roadCost(e))){showOverlay('<h1>Zu wenig Material</h1><p>Die Straße nach <b>'+NODES[to].name+'</b> kostet '+costText(roadCost(e))+'.</p><button class="big" id="bClose">Verstanden</button>');return}
+    if(orderRoad(PL,e,id))logMsg('Straße nach '+NODES[to].name+' beauftragt – fertig zum Monatsende.','good');
+  }
   else if(act==='trade'){openTrade(id);return}
   else if(act==='info'){openNodeInfo(id);return}
   updateHud();
