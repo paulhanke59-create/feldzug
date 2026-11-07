@@ -2314,7 +2314,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.25 · 7.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.26 · 7.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2450,8 +2450,8 @@ function openMil(){
 }
 function openTrade(id){
   const mine=Object.keys(NODES).filter(x=>x!==id&&G.own[x]===PL&&(isEco(NODES[x])||NODES[x].type==='castle'));
-  let h='<h1>Handel</h1><p><small>Ein Händlerwagen pendelt dauerhaft zwischen zwei deiner Orte und bringt bei jeder Ankunft Gold und Waren. Feindliche Heere können ihn überfallen. Einrichtung: 60 Gold, höchstens '+MAX_ROUTES+' Routen. Du hast '+G.routes.length+'.</small></p>';
-  for(const r of G.routes.filter(r=>r.a===id||r.b===id))h+='<div class="row"><div><b>'+NODES[r.a].name+' ⇄ '+NODES[r.b].name+'</b><br><small>ca. '+routeProfit(r)+' Gold je Fahrt</small></div><button data-d="'+r.id+'">Beenden</button></div>';
+  let h='<h1>Handel</h1><p><small>Ein Händlerwagen pendelt dauerhaft zwischen zwei deiner Orte und bringt bei jeder Ankunft Gold und Waren. Feindliche Heere können ihn überfallen. Einrichtung: 60 Gold, dauerhaft, höchstens '+MAX_ROUTES+' Routen. Du hast '+G.routes.length+'.</small></p>';
+  for(const r of G.routes.filter(r=>r.a===id||r.b===id))h+='<div class="row"><div><b>'+NODES[r.a].name+' ⇄ '+NODES[r.b].name+'</b><br><small>ca. '+routeProfit(r)+' Gold je Fahrt</small></div></div>';
   h+='<h2>Neue Route von '+NODES[id].name+'</h2>';
   const opts=mine.map(x=>({x,r:pathFromTo(id,x)})).filter(o=>o.r&&!G.routes.some(r=>(r.a===id&&r.b===o.x)||(r.a===o.x&&r.b===id))).sort((p,q)=>p.r.cost-q.r.cost).slice(0,6);
   if(!opts.length)h+='<p><small>Kein weiterer eigener Ort erreichbar.</small></p>';
