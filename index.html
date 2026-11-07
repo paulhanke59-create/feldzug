@@ -659,7 +659,7 @@ function mkArmy(side,name,units,node){
   const a={id:G.nextId++,side,name,units:u,food:0,arrows:0,
     at:node,from:null,to:null,p:0,path:[],dest:null,
     retreating:false,alive:true,lastRate:0,starving:false,starveT:0,supc:null,
-    haltUntil:0,bold:false,restT:0,occ:0,startTroops:0,cut:false};
+    haltUntil:0,goal:null,bold:false,restT:0,occ:0,startTroops:0,cut:false};
   a.food=foodCap(a);a.arrows=arrowCap(a);a.startTroops=troops(a);
   return a;
 }
@@ -864,6 +864,7 @@ function onArrive(a){
 function occupy(a,n){
   const prev=G.own[n.id],side=a.side;
   G.own[n.id]=side;
+  if(prev===PL||side===PL||visibleAt(PL,n.x,n.y)){G.known[n.id]={owner:side};G.knownFort[n.id]=null}
   if(G.lvl[n.id]){G.lvl[n.id]=Math.max(1,G.lvl[n.id]-1);G.mood[n.id]=25;G.dev[n.id]=0}
   if(G.fort[n.id]&&G.fort[n.id].owner!==side)delete G.fort[n.id];
   a.occ=(a.occ||0)+1;
@@ -876,7 +877,7 @@ function conquer(att,vic){
   const V=G.K[vic],A=G.K[att];
   V.alive=false;
   for(const r of RES_KEYS)A.stock[r]+=V.stock[r]*0.5;
-  for(const id in NODES)if(G.own[id]===vic){G.own[id]=att;if(G.lvl[id]){G.lvl[id]=Math.max(1,G.lvl[id]-1);G.mood[id]=25;G.dev[id]=0}if(G.fort[id])delete G.fort[id]}
+  for(const id in NODES)if(G.own[id]===vic){G.own[id]=att;if(att===PL||vic===PL||G.known[id])G.known[id]={owner:att};if(G.lvl[id]){G.lvl[id]=Math.max(1,G.lvl[id]-1);G.mood[id]=25;G.dev[id]=0}if(G.fort[id])delete G.fort[id]}
   for(const b of G.armies)if(b.side===vic)b.alive=false;
   G.armies=G.armies.filter(x=>x.alive);
   G.routes=G.routes.filter(r=>G.own[r.a]===PL&&G.own[r.b]===PL);
@@ -1447,28 +1448,45 @@ function aiDecide(b){
   }
   if(b.units.scout>0&&b.units.scout>=troops(b)*0.5){b.path=[];return}
   if(b.at===home&&troops(b)<140&&b.name!=='Hauptheer'&&sideArmies(k).length>1){b.path=[];b.dest=null;return}
-  if(near&&near.d<420&&troops(b)>=0.8*troops(near.e)){const t=nearestNode(near.p.x,near.p.y);if(b.dest!==t)planArmy(b,t);return}
+  if(b.at===null)return;                       /* unterwegs wird nicht umgeplant */
   const month=dateInfo(G.time).m;
-  if((b.occ||0)<4){
-    const t=nearestFreeEco(b,8);
-    if(t){if(b.dest!==t)planArmy(b,t);return}
+  if(b.goal){
+    const gn=b.goal;
+    if(G.own[gn]!==k&&b.dest===gn)return;      /* Ziel beibehalten */
+    b.goal=null;
   }
-  if(b.food<fc*0.7){
-    const t=nearestFreeEco(b,10);
-    if(t){if(b.dest!==t)planArmy(b,t);return}
-  }
-  if(month>=6&&troops(b)>=450){
-    const r=dijkstra(b.at!==null?b.at:b.to,'move');
+  const setGoal=t=>{if(t!==b.at&&planArmy(b,t)){b.goal=t;return true}return false};
+  /* Verfolgung nur bei klarer Überlegenheit und nach der Anfangszeit */
+  if(month>=2&&near&&near.d<300&&troops(b)>=1.3*troops(near.e)){const t=nearestNode(near.p.x,near.p.y);if(setGoal(t))return}
+  const r=dijkstra(b.at,'move');
+  const pick=(pred,limit)=>{
     let best=null,bd=Infinity;
-    for(const o of aliveKings()){
-      if(o===k)continue;
-      const cap=KINGS[o].capital;
-      if(r.dist[cap]<bd){bd=r.dist[cap];best=cap}
+    for(const id in NODES){
+      const n=NODES[id];
+      if(id===b.at||!pred(n,id)||enemyAt(k,id))continue;
+      if(r.dist[id]<bd){bd=r.dist[id];best=id}
     }
-    if(best){if(b.dest!==best)planArmy(b,best);return}
+    return bd<=limit?best:null;
+  };
+  /* 1. freie Orte besetzen */
+  const free=pick((n,id)=>(isEco(n)||n.type==='tower')&&!G.own[id],14);
+  if(free&&b.food>=fc*0.5&&setGoal(free))return;
+  /* 2. später: Orte anderer Reiche erobern (nicht die Hauptburg) */
+  if(month>=4&&troops(b)>=350&&b.food>=fc*0.6){
+    const foe=pick((n,id)=>(isEco(n)||n.type==='tower')&&G.own[id]&&G.own[id]!==k,10);
+    if(foe&&setGoal(foe))return;
   }
-  if(b.at!==home&&b.dest!==home)planArmy(b,home);
+  /* 3. noch später: Hauptburg angreifen */
+  if(month>=6&&troops(b)>=450&&b.food>=fc*0.6){
+    let best=null,bd=Infinity;
+    for(const o of aliveKings()){if(o===k)continue;const cap=KINGS[o].capital;if(r.dist[cap]<bd){bd=r.dist[cap];best=cap}}
+    if(best&&setGoal(best))return;
+  }
+  /* sonst: bleiben, wo man ist (eigenes Gebiet) oder heimkehren */
+  if(G.own[b.at]!==k&&b.at!==home){if(b.dest!==home)planArmy(b,home)}
+  else{b.path=[];b.dest=null}
 }
+
 function aiTick(){
   for(const k of aliveKings()){
     if(k===PL)continue;
@@ -2277,7 +2295,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.22 · 7.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.23 · 7.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
