@@ -443,6 +443,31 @@ function buildBackground(seed){
   }
   c.strokeStyle='rgba(140,115,70,.10)';c.lineWidth=.7;
   for(let i=0;i<2600;i++){const x=r()*W,y=r()*H,a=r()*6.283,l=4+r()*10;c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);c.stroke()}
+  /* Geländefärbung */
+  const TINT={plain:'rgba(150,172,92,.13)',forest:'rgba(70,118,58,.24)',hills:'rgba(176,138,78,.22)',mountain:'rgba(112,96,84,.30)',swamp:'rgba(84,112,92,.28)'};
+  for(let y=10;y<H;y+=34)for(let x=10;x<W;x+=34){
+    const px=x+(r()-.5)*20,py=y+(r()-.5)*20;
+    if(!inIsland(px,py,-30))continue;
+    const t=terrainAt(px,py),rad=46+r()*20;
+    const g2=c.createRadialGradient(px,py,0,px,py,rad);
+    g2.addColorStop(0,TINT[t]);g2.addColorStop(1,TINT[t].replace(/[\d.]+\)$/,'0)'));
+    c.fillStyle=g2;c.fillRect(px-rad,py-rad,rad*2,rad*2);
+  }
+  /* Gras, Blumen, Büsche */
+  c.lineCap='round';
+  for(let n=0;n<9000;n++){
+    const x=r()*W,y=r()*H;
+    if(!inIsland(x,y,25))continue;
+    const t=terrainAt(x,y);
+    if(t==='mountain'||nearInfra(x,y,26))continue;
+    const q=r();
+    if(t==='plain'||t==='forest'){
+      if(q<0.62){c.strokeStyle='rgba(78,110,52,.55)';c.lineWidth=1;c.beginPath();c.moveTo(x-2,y);c.lineTo(x-3,y-4);c.moveTo(x,y);c.lineTo(x,y-5);c.moveTo(x+2,y);c.lineTo(x+3,y-4);c.stroke()}
+      else if(q<0.8){c.fillStyle=['#c9574b','#e6c34a','#f1ead8','#8d7bc4'][Math.floor(r()*4)];c.beginPath();c.arc(x,y,1.5,0,6.283);c.fill()}
+      else if(q<0.9&&t==='plain'){c.fillStyle='rgba(60,92,44,.8)';c.beginPath();c.ellipse(x,y,4.5,3,0,0,6.283);c.fill();c.fillStyle='rgba(95,130,64,.8)';c.beginPath();c.ellipse(x-1,y-1.2,3,2,0,0,6.283);c.fill()}
+    }else if(t==='hills'&&q<0.5){c.fillStyle='rgba(120,100,70,.55)';c.beginPath();c.arc(x,y,1.6,0,6.283);c.fill()}
+    else if(t==='swamp'&&q<0.5){c.strokeStyle='rgba(50,80,70,.7)';c.lineWidth=1;c.beginPath();c.moveTo(x-3,y);c.lineTo(x+3,y);c.moveTo(x-1.5,y+2);c.lineTo(x+1.5,y+2);c.stroke()}
+  }
   /* Flüsse */
   c.lineCap='round';c.lineJoin='round';
   const tracePts=(pts)=>{c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y))};
@@ -501,6 +526,42 @@ function buildBackground(seed){
   for(let k=0;k<3;k++){
     c.beginPath();isl.forEach((p,i)=>{const a=Math.atan2(p.y-1300,p.x-1300),q=1+(14+k*16)/coastR(a);const x=1300+(p.x-1300)*q,y=1300+(p.y-1300)*q;i?c.lineTo(x,y):c.moveTo(x,y)});c.closePath();
     c.strokeStyle='rgba(255,255,255,'+(0.42-k*0.12)+')';c.lineWidth=3-k*0.6;c.stroke();
+  }
+  const shallow=c.createRadialGradient(0,0,0,0,0,1);
+  for(let k=0;k<5;k++){
+    c.beginPath();isl.forEach((p,i)=>{const a=Math.atan2(p.y-1300,p.x-1300),q=1+(10+k*9)/coastR(a);const x=1300+(p.x-1300)*q,y=1300+(p.y-1300)*q;i?c.lineTo(x,y):c.moveTo(x,y)});c.closePath();
+    c.strokeStyle='rgba(190,230,230,'+(0.20-k*0.035)+')';c.lineWidth=12;c.stroke();
+  }
+  /* Schiffe und Seeungeheuer */
+  const ship=(x,y,s,fl)=>{
+    c.save();c.translate(x,y);c.scale(s*fl,s);
+    c.fillStyle='rgba(50,70,85,.25)';c.beginPath();c.ellipse(0,6,22,4,0,0,6.283);c.fill();
+    c.fillStyle='#6b4a2b';c.strokeStyle='#2c1c0e';c.lineWidth=1.2;
+    c.beginPath();c.moveTo(-20,-2);c.lineTo(20,-2);c.lineTo(14,7);c.lineTo(-14,7);c.closePath();c.fill();c.stroke();
+    c.strokeStyle='#2c1c0e';c.lineWidth=1.6;c.beginPath();c.moveTo(0,-2);c.lineTo(0,-28);c.stroke();
+    c.fillStyle='#f4ead0';c.beginPath();c.moveTo(1,-27);c.lineTo(17,-8);c.lineTo(1,-8);c.closePath();c.fill();c.stroke();
+    c.beginPath();c.moveTo(-1,-24);c.lineTo(-13,-8);c.lineTo(-1,-8);c.closePath();c.fill();c.stroke();
+    c.fillStyle='#b23a2e';c.beginPath();c.moveTo(0,-28);c.lineTo(9,-26);c.lineTo(0,-23);c.closePath();c.fill();
+    c.restore();
+  };
+  let placed=0;
+  for(let t=0;t<400&&placed<7;t++){
+    const x=140+r()*(W-280),y=140+r()*(H-280);
+    if(inIsland(x,y,-170))continue;
+    ship(x,y,0.9+r()*0.5,r()<.5?1:-1);placed++;
+  }
+  const serpent=(x,y,s)=>{
+    c.save();c.translate(x,y);c.scale(s,s);
+    c.strokeStyle='#2e5a3f';c.fillStyle='#3c7452';c.lineWidth=9;c.lineCap='round';
+    for(let i=0;i<3;i++){c.beginPath();c.arc(i*34,0,16,Math.PI,0);c.stroke()}
+    c.beginPath();c.arc(102,-16,15,Math.PI*1.05,Math.PI*0.2,false);c.stroke();
+    c.lineWidth=1.2;c.strokeStyle='#1b3a28';c.beginPath();c.arc(111,-26,2.2,0,6.283);c.fillStyle='#fff';c.fill();c.stroke();
+    c.restore();
+  };
+  for(let t=0,n=0;t<400&&n<2;t++){
+    const x=160+r()*(W-420),y=160+r()*(H-300);
+    if(inIsland(x,y,-260))continue;
+    serpent(x,y,0.9);n++;
   }
   c.restore();
   path();c.strokeStyle='rgba(110,85,45,.55)';c.lineWidth=2.4;c.stroke();
@@ -2132,7 +2193,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.17 · 7.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.18 · 7.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
