@@ -637,6 +637,8 @@ function sightOf(a){
   return a.units.scout>0?200:150;
 }
 const KP=k=>G.K[k];
+const NEUTRAL_T=['cross','ruin','pass','bridge'];
+const passOk=(k,id)=>G.own[id]===k||(G.own[id]==null&&NEUTRAL_T.indexOf(NODES[id].type)>=0);
 const owned=k=>Object.keys(NODES).filter(id=>G.own[id]===k);
 const lvlF=id=>(NODES[id].type==='castle'?1:0.6+0.2*(G.lvl[id]||1))*(G.pf[id]||1);
 const popN=id=>Math.round((POPN[NODES[id].type]||0)*lvlF(id));
@@ -880,7 +882,6 @@ function conquer(att,vic){
   for(const id in NODES)if(G.own[id]===vic){G.own[id]=att;if(att===PL||vic===PL||G.known[id])G.known[id]={owner:att};if(G.lvl[id]){G.lvl[id]=Math.max(1,G.lvl[id]-1);G.mood[id]=25;G.dev[id]=0}if(G.fort[id])delete G.fort[id]}
   for(const b of G.armies)if(b.side===vic)b.alive=false;
   G.armies=G.armies.filter(x=>x.alive);
-  G.routes=G.routes.filter(r=>G.own[r.a]===PL&&G.own[r.b]===PL);
   logMsg((att===PL?'Du hast ':KINGS[att].name+' hat ')+KINGS[vic].name+' erobert!',att===PL?'good':'bad');
   if(vic===PL)G.over={winner:att,reason:'Deine Hauptburg ist gefallen. '+KINGS[att].name+' beherrscht nun dein Land.'};
   else if(aliveKings().length===1)G.over={winner:PL,reason:'Alle anderen Königreiche sind gefallen – du herrschst über das ganze Land!'};
@@ -1017,7 +1018,7 @@ const progOf=o=>clamp((G.time-o.start)/(o.end-o.start),0,1);
 function applyBuild(k,b){
   if(b.kind==='strasse'){
     const e=EMAP[b.edge];
-    if(e&&G.own[e.a]===k&&G.own[e.b]===k){applyEdge(e,'road',e.ford?e.fordT:0);if(k===PL)logMsg('Straße '+NODES[e.a].name+' – '+NODES[e.b].name+' ist fertig.','good')}
+    if(e&&passOk(k,e.a)&&passOk(k,e.b)){applyEdge(e,'road',e.ford?e.fordT:0);if(k===PL)logMsg('Straße '+NODES[e.a].name+' – '+NODES[e.b].name+' ist fertig.','good')}
     return;
   }
   if(G.own[b.node]!==k)return;
@@ -1074,7 +1075,7 @@ function roadPending(k,e){return G.K[k].orders.build.some(b=>b.kind==='strasse'&
 /* Straße A–B ist erlaubt, wenn A oder B schon über Straßen mit der Hauptburg verbunden ist */
 function roadReach(k){
   const home=KINGS[k].capital,seen=new Set([home]),q=[home];
-  while(q.length){const u=q.shift();for(const {to,e} of ADJ[u]){if(e.type==='road'&&!seen.has(to)&&G.own[to]===k){seen.add(to);q.push(to)}}}
+  while(q.length){const u=q.shift();for(const {to,e} of ADJ[u]){if(e.type==='road'&&!seen.has(to)&&passOk(k,to)){seen.add(to);q.push(to)}}}
   return seen;
 }
 function gapTo(k,T){
@@ -1087,7 +1088,7 @@ function gapTo(k,T){
     if(u===null||u===T)break;
     done.add(u);
     for(const {to,e} of ADJ[u]){
-      if(G.own[to]!==k)continue;
+      if(!passOk(k,to))continue;
       const c=ud+(e.type==='road'?0.001:1);
       if(c<dist[to]){dist[to]=c;prev[to]=u}
     }
@@ -1105,7 +1106,7 @@ function roadGap(k,A,B){
   return g||{from:A,to:B};
 }
 function orderRoad(k,e,fromNode){
-  if(e.type==='road'||roadPending(k,e)||G.own[e.a]!==k||G.own[e.b]!==k)return false;
+  if(e.type==='road'||roadPending(k,e)||!passOk(k,e.a)||!passOk(k,e.b))return false;
   const c=roadCost(e);if(!canPay(k,c))return false;
   pay(k,c);G.K[k].orders.build.push({kind:'strasse',edge:e.a<e.b?e.a+'|'+e.b:e.b+'|'+e.a,node:fromNode,cost:c,start:G.time,end:G.time+roadDays(e)*DAY_S});return true;
 }
@@ -1199,8 +1200,10 @@ function addRoute(a,b){
 }
 function removeRoute(id,msg){const i=G.routes.findIndex(r=>r.id===id);if(i<0)return;G.routes.splice(i,1);if(msg)logMsg(msg,'bad')}
 function cartPos(rt){return edgePoint(EMAP[rt.nodes[rt.k]+'|'+rt.nodes[rt.k+1]],rt.nodes[rt.k],rt.p)}
+const routeActive=rt=>G.own[rt.a]===PL&&G.own[rt.b]===PL;
 function stepCarts(dt){
   for(const rt of G.routes.slice()){
+    if(!routeActive(rt))continue;
     let mp=0.32*dt;
     while(mp>1e-9){
       const e=EMAP[rt.nodes[rt.k]+'|'+rt.nodes[rt.k+1]];
@@ -1221,7 +1224,7 @@ function stepCarts(dt){
 }
 function routeChecks(){
   for(const rt of G.routes.slice()){
-    if(G.own[rt.a]!==PL||G.own[rt.b]!==PL){removeRoute(rt.id,'Handelsroute aufgegeben – ein Ort ging verloren.');continue}
+    if(!routeActive(rt))continue;
     const p=cartPos(rt);
     for(const b of foesOf(PL))if(dist(armyPos(b),p)<45){removeRoute(rt.id,'Dein Händler wurde überfallen!');break}
   }
@@ -1747,6 +1750,7 @@ function pathPoints(nodes,steps){
 function drawTradeRoutes(){
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
   for(const rt of G.routes){
+    if(!routeActive(rt))continue;
     const pts=pathPoints(rt.nodes,14);
     ctx.strokeStyle='rgba(60,40,10,.4)';ctx.lineWidth=5;ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();
     ctx.strokeStyle='#e8b93c';ctx.lineWidth=2.4;ctx.setLineDash([2,6]);ctx.lineDashOffset=-ANIM_T*8;
@@ -2076,7 +2080,7 @@ function render(){
     const d=NODES[G.pick],p=w2s(d.x,d.y);
     haloText('ca. '+Math.ceil(pv.secs)+' s',p.x,p.y-34*k*view.s-6,11.5,'#6a3d00','center',true);
   }
-  for(const rt of G.routes){const c=cartPos(rt),s=w2s(c.x,c.y),nx=NODES[rt.nodes[rt.k+1]];drawCart(s.x,s.y,nx.x-c.x)}
+  for(const rt of G.routes){if(!routeActive(rt))continue;const c=cartPos(rt),s=w2s(c.x,c.y),nx=NODES[rt.nodes[rt.k+1]];drawCart(s.x,s.y,nx.x-c.x)}
   armyHits=[];
   const vis=[];
   for(const b of G.armies){
@@ -2228,7 +2232,7 @@ function nodeInfoHtml(id){
     }
   }
   if(own===PL&&a&&a.at===id)for(const {to,e} of ADJ[id]){
-    if(G.own[to]!==PL||e.type==='road'||roadPending(PL,e))continue;
+    if(!passOk(PL,to)||e.type==='road'||roadPending(PL,e))continue;
     const c=roadCost(e);
     h+='<button data-act="road" data-v="'+to+'">Straße nach '+NODES[to].name+' · '+costText(c)+'</button>';
   }
@@ -2314,7 +2318,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.26 · 7.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.27 · 7.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
