@@ -94,6 +94,7 @@ button:disabled{opacity:.45}
 #card button.big{margin-top:8px}
 #card button.x{float:right;position:sticky;top:0;width:40px;height:40px;padding:0;margin:-8px -8px 0 8px;font-size:20px;z-index:2}
 #info button.px{float:right;width:34px;height:34px;padding:0;margin:-4px -6px 0 6px;font-size:17px}
+#miniBox{position:fixed;left:10px;bottom:260px;z-index:5;width:96px;pointer-events:none}#mini{position:static!important;inset:auto!important;width:96px;height:96px;border:2px solid #5a4630;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.5);pointer-events:auto;display:block}#miniLbl{font:bold 11px Georgia,serif;color:#f1e3b8;text-shadow:0 1px 2px #000;margin-top:2px;text-align:center}
 </style>
 </head>
 <body>
@@ -132,6 +133,7 @@ button:disabled{opacity:.45}
   <button id="bHelp" aria-label="Hilfe">?</button>
 </div>
 
+<div id="miniBox"><canvas id="mini" width="120" height="120"></canvas><div id="miniLbl"></div></div>
 <div id="overlay"><div id="card"></div></div>
 
 <script>
@@ -252,7 +254,14 @@ function genWorld(seed){
   calibrate(mulberry32(seed+1));
   const used=new Set();
   const nameFor=()=>{for(let i=0;i<40;i++){const n=PRE[Math.floor(rnd()*PRE.length)]+SUF[Math.floor(rnd()*SUF.length)];if(!used.has(n)){used.add(n);return n}}return 'Ort'+used.size};
-  const caps=KIDS.map((k,i)=>{const a=(135+60*i)*Math.PI/180;return{x:1300+980*Math.cos(a)+(rnd()-.5)*80,y:1300+980*Math.sin(a)+(rnd()-.5)*80}});
+  const caps=[];
+  for(let tries=0;caps.length<KIDS.length;tries++){
+    const md=tries<600?720:tries<1200?600:480;
+    const x=450+rnd()*(W-900),y=450+rnd()*(H-900);
+    if(caps.every(c=>Math.hypot(c.x-x,c.y-y)>=md))caps.push({x,y});
+    if(tries>3000)break;
+  }
+  while(caps.length<KIDS.length){const a=(135+60*caps.length)*Math.PI/180;caps.push({x:1300+980*Math.cos(a),y:1300+980*Math.sin(a)})}
   let nid=0;const pts=[];
   const mk=(type,x,y,owner,name)=>{const id='n'+(nid++);const n={id,type,x:Math.round(x),y:Math.round(y),owner:owner||null,name:name||nameFor()};NODES[id]=n;pts.push(n);return n};
   KIDS.forEach((k,i)=>{const n=mk('castle',caps[i].x,caps[i].y,k,KINGS[k].cap);n.capOf=k;KINGS[k].capital=n.id});
@@ -1942,6 +1951,48 @@ function centerOn(a){
 function centerNode(id){
   const n=NODES[id];view.x=cw/2-n.x*view.s;view.y=ch/2-n.y*view.s;clampView();
 }
+const mini=$('mini'),mctx=mini.getContext('2d');
+const mm2=document.createElement('canvas');mm2.width=mm2.height=mini.width;
+function drawMini(){
+  const S=mini.width,f=S/W;
+  mctx.clearRect(0,0,S,S);
+  mctx.fillStyle='#241b10';mctx.fillRect(0,0,S,S);
+  const m2=mm2.getContext('2d');
+  m2.globalCompositeOperation='source-over';m2.clearRect(0,0,S,S);m2.fillStyle='#cdb98a';m2.fillRect(0,0,S,S);
+  m2.globalCompositeOperation='destination-in';m2.imageSmoothingEnabled=true;m2.drawImage(explCv,0,0,GW,GW,0,0,S,S);
+  mctx.drawImage(mm2,0,0);
+  for(const id in NODES){
+    const kn=G.known[id];if(!kn)continue;
+    const n=NODES[id],ow=G.own[id]||kn.owner;
+    if(!ow)continue;
+    const mine=ow===PL;
+    const gr=mctx.createRadialGradient(n.x*f,n.y*f,0,n.x*f,n.y*f,(mine?20:14)*S/120);
+    gr.addColorStop(0,KINGS[ow].color+(mine?'cc':'88'));gr.addColorStop(1,KINGS[ow].color+'00');
+    mctx.fillStyle=gr;mctx.beginPath();mctx.arc(n.x*f,n.y*f,(mine?20:14)*S/120,0,6.283);mctx.fill();
+  }
+  for(const id in NODES){
+    const kn=G.known[id];if(!kn)continue;
+    const n=NODES[id];
+    if(n.type==='castle'){
+      const ow=G.own[id];
+      mctx.fillStyle=KINGS[ow].color;mctx.strokeStyle='#1a120a';mctx.lineWidth=1.5;
+      mctx.beginPath();mctx.rect(n.x*f-4,n.y*f-4,8,8);mctx.fill();mctx.stroke();
+    }else{
+      mctx.fillStyle=kn.owner===PL?KINGS[PL].dark:'rgba(60,45,25,.6)';
+      mctx.fillRect(n.x*f-1,n.y*f-1,2.4,2.4);
+    }
+  }
+  for(const a of sideArmies(PL)){const p=armyPos(a);mctx.fillStyle='#fff';mctx.beginPath();mctx.arc(p.x*f,p.y*f,2.2,0,6.283);mctx.fill()}
+  mctx.strokeStyle='rgba(255,255,255,.9)';mctx.lineWidth=1.3;
+  mctx.strokeRect((-view.x/view.s)*f,(-view.y/view.s)*f,(cw/view.s)*f,(ch/view.s)*f);
+  $('miniLbl').textContent='Land '+Math.round(landShare(PL)*100)+' %';
+  const bh=$('bottom').getBoundingClientRect().height;
+  $('miniBox').style.bottom=(bh+68)+'px';
+}
+mini.addEventListener('click',e=>{
+  const r=mini.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;
+  view.x=cw/2-x*view.s;view.y=ch/2-y*view.s;clampView();
+});
 function measureChests(){
   for(const [k,id] of [['gold','rGold'],['food','rFood'],['iron','rIron'],['wood','rWood']]){
     const r=$(id).getBoundingClientRect();
@@ -2011,6 +2062,7 @@ function updateHud(){
   $('bPlay').textContent=G.paused?'▶':'⏸';
   $('bSpd').textContent=G.speed+'×';
   measureChests();
+  drawMini();
   if(!a){$('aname').textContent='Kein Heer';return}
   const s=a.supc||supplyInfo(a);
   $('sup').innerHTML=s.rate>0?'<b class="ok">Nachschub +'+f0(s.rate)+'</b>':'<b class="bad">Nachschub gekappt</b>';
@@ -2050,7 +2102,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.15 · 4.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.16 · 7.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2411,7 +2463,7 @@ window.addEventListener('popstate',()=>{
   introOpen=true;
   showOverlay('<h1>Spiel beenden?</h1><p>Der Spielstand geht verloren. Die Zeit steht solange still.</p><button class="big main" id="bStay">Weiterspielen</button><button class="big" id="bQuit">Wirklich beenden</button>');
   $('bStay').onclick=()=>{introOpen=prevIntro;if(wasHidden)hideOverlay();else{$('card').innerHTML=prev;}};
-  $('bQuit').onclick=()=>{leaving=true;history.go(-2);setTimeout(()=>{try{window.close()}catch(e){}},300)};
+  $('bQuit').onclick=()=>{leaving=true;G.paused=true;try{window.close()}catch(e){}try{history.go(-2)}catch(e){}setTimeout(()=>{location.replace('about:blank')},200)};
 });
 window.addEventListener('beforeunload',e=>{if(!leaving&&G&&!G.over){e.preventDefault();e.returnValue=''}});
 window.addEventListener('resize',resize);
