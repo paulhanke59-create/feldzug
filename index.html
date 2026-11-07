@@ -2341,7 +2341,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.28 · 7.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.29 · 7.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2349,7 +2349,8 @@ function showIntro(){
   '<li><b>Militärrat</b>: Heer, Rekruten, Befestigungen, Späher, Kriegszüge.</li>'+
   '<li>Rekruten und Bauten brauchen einige Tage; den Fortschritt siehst du im Militärrat und am Ort. Das Spiel läuft in Echtzeit (⏸ Pause, 1×/2×/4×); Fenster halten die Zeit an.</li>'+
   '<li>Ziel: <b>Erobere Land!</b> Besetze Dörfer, Äcker, Minen und Türme und nimm den Feinden ihre Orte ab. Du gewinnst, wenn du die ganze Insel beherrschst, also alle fünf anderen Hauptburgen erobert hast. Fällt deine Hauptburg, ist alles verloren. <b>Katapulte</b> brechen Mauern und Schanzen.</li></ul>'+
-  '<button class="big main" id="bStart">Erster Wirtschaftsrat</button><button class="big" id="bStart2">Gleich losspielen</button>');
+  (saveInfo()?'<button class="big main" id="bLoad">Spielstand fortsetzen (Monat '+saveInfo().m+')</button>':'')+'<button class="big main" id="bStart">'+(saveInfo()?'Neues Spiel: ':'')+'Erster Wirtschaftsrat</button><button class="big" id="bStart2">Gleich losspielen</button>');
+  if($('bLoad'))$('bLoad').onclick=()=>{if(!loadGame()){$('bLoad').textContent='Laden fehlgeschlagen'}};
   $('bStart').onclick=()=>{introOpen=false;openEco()};
   $('bStart2').onclick=()=>{introOpen=false;hideOverlay()};
 }
@@ -2682,6 +2683,48 @@ function startGame(){
   view.s=Math.max(fitS*1.1,cw/640);centerNode(KINGS[PL].capital);
   fogLast.w=0;updateHud();
 }
+
+/* ---------- Speichern & Laden ---------- */
+const SAVE_KEY='feldzug_save_v1';
+function b64e(a){let s='';for(let i=0;i<a.length;i+=8192)s+=String.fromCharCode.apply(null,a.subarray(i,i+8192));return btoa(s)}
+function b64d(s){const r=atob(s),a=new Uint8Array(r.length);for(let i=0;i<r.length;i++)a[i]=r.charCodeAt(i);return a}
+function saveGame(force){
+  if(!G||G.over||(introOpen&&!force))return false;
+  try{
+    const g={};for(const k in G)if(k!=='rnd'&&k!=='expl'&&k!=='fx'&&k!=='parts')g[k]=G[k];
+    const edges=[];EDGES.forEach((e,i)=>{if(e.type!==e.type0||!!e.ford!==!!e.ford0)edges.push([i,e.type,e.fordT||0])});
+    const d={v:1,seed:G.seed,ver:'5.29',m:dateInfo(G.time).m,G:g,expl:b64e(G.expl),fog:explCv.toDataURL(),edges};
+    localStorage.setItem(SAVE_KEY,JSON.stringify(d));
+    return true;
+  }catch(e){return false}
+}
+function saveInfo(){
+  try{const r=localStorage.getItem(SAVE_KEY);if(!r)return null;const d=JSON.parse(r);return d&&d.v===1?{m:d.m,ver:d.ver}:null}catch(e){return null}
+}
+function clearSave(){try{localStorage.removeItem(SAVE_KEY)}catch(e){}}
+function loadGame(){
+  try{
+    const d=JSON.parse(localStorage.getItem(SAVE_KEY));
+    if(!d||d.v!==1)return false;
+    genWorld(d.seed);
+    const g=d.G;
+    g.rnd=mulberry32(d.seed+3+Math.floor(g.time));
+    g.expl=b64d(d.expl);g.fx=[];g.parts=[];
+    G=g;
+    buildBackground(d.seed);
+    for(const [i,t,f] of d.edges)applyEdge(EDGES[i],t,f);
+    ectx.clearRect(0,0,GW,GW);
+    const img=new Image();img.onload=()=>{ectx.drawImage(img,0,0);fogLast.w=0};img.src=d.fog;
+    G.paused=false;G.pick=null;
+    introOpen=false;hideOverlay();
+    view.s=Math.max(fitS*1.1,cw/640);centerOn(selArmy());
+    fogLast.w=0;updateHud();
+    return true;
+  }catch(e){return false}
+}
+let lastSave=0;
+document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame()});
+window.addEventListener('pagehide',()=>{saveGame()});
 let lastT=0,hudT=0,overShown=false;
 function loop(ts){
   const now=ts||performance.now();
@@ -2690,7 +2733,8 @@ function loop(ts){
   ANIM_T+=real;
   const open=!$('overlay').classList.contains('hide');
   if(G&&!G.paused&&!G.over&&open===false)simulate(real*G.speed);
-  if(G&&G.over&&!overShown){overShown=true;setTimeout(showGameOver,900)}
+  if(G&&G.over&&!overShown){overShown=true;clearSave();setTimeout(showGameOver,900)}
+  if(G&&!G.over&&now-lastSave>20000){lastSave=now;saveGame()}
   if(G&&!G.over)overShown=false;
   if(G&&G.council&&!open&&!G.over){G.council=false;showMonthReport()}
   if(now-hudT>220){hudT=now;updateHud()}
@@ -2708,9 +2752,9 @@ window.addEventListener('popstate',()=>{
   if(!$('overlay').classList.contains('hide')&&!introOpen){hideOverlay();updateHud();return}
   const wasHidden=$('overlay').classList.contains('hide'),prev=$('card').innerHTML,prevIntro=introOpen;
   introOpen=true;
-  showOverlay('<h1>Spiel beenden?</h1><p>Der Spielstand geht verloren. Die Zeit steht solange still.</p><button class="big main" id="bStay">Weiterspielen</button><button class="big" id="bQuit">Wirklich beenden</button>');
+  showOverlay('<h1>Spiel beenden?</h1><p>Dein Spielstand wird gespeichert. Die Zeit steht solange still.</p><button class="big main" id="bStay">Weiterspielen</button><button class="big" id="bQuit">Wirklich beenden</button>');
   $('bStay').onclick=()=>{introOpen=prevIntro;if(wasHidden)hideOverlay();else{$('card').innerHTML=prev;}};
-  $('bQuit').onclick=()=>{leaving=true;G.paused=true;try{window.close()}catch(e){}try{history.go(-2)}catch(e){}setTimeout(()=>{location.replace('about:blank')},200)};
+  $('bQuit').onclick=()=>{saveGame(!prevIntro);leaving=true;G.paused=true;try{window.close()}catch(e){}try{history.go(-2)}catch(e){}setTimeout(()=>{location.replace('about:blank')},200)};
 });
 window.addEventListener('beforeunload',e=>{if(!leaving&&G&&!G.over){e.preventDefault();e.returnValue=''}});
 window.addEventListener('resize',resize);
