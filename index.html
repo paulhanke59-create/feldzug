@@ -1509,12 +1509,35 @@ function aiTick(){
 
 /* ---------- Simulation ---------- */
 function landShare(k){return owned(k).length/Object.keys(NODES).length}
+function capitalWarn(){
+  if(G.over||G.K[PL].alive===false)return;
+  const cap=KINGS[PL].capital;
+  if(!G.hops){G.hops={};const q=[cap];G.hops[cap]=0;while(q.length){const u=q.shift();for(const {to} of ADJ[u])if(G.hops[to]===undefined){G.hops[to]=G.hops[u]+1;q.push(to)}}}
+  if(!G.warned)G.warned={};
+  for(const b of G.armies){
+    if(!b.alive||b.side===PL)continue;
+    const p=armyPos(b);
+    if(!visibleAt(PL,p.x,p.y)){continue}
+    const h=b.at!==null?G.hops[b.at]:Math.min(G.hops[b.from],G.hops[b.to]);
+    if(h===undefined)continue;
+    if(h>3){delete G.warned[b.id];continue}
+    if(h<=2&&!G.warned[b.id]){
+      G.warned[b.id]=1;
+      logMsg('⚠ WARNUNG: '+b.name+' ('+KINGS[b.side].name+', ca. '+Math.round(troops(b)/10)*10+' Mann) nähert sich deiner Hauptburg – nur noch '+h+(h===1?' Dorf':' Dörfer')+' entfernt!','bad');
+      if(G.speed>1)G.speed=1;
+      if(typeof showOverlay==='function'&&typeof $==='function'){
+        showOverlay('<h1>⚠ Feind vor der Hauptburg</h1><p><b>'+b.name+'</b> von '+KINGS[b.side].name+' (ca. '+Math.round(troops(b)/10)*10+' Mann) ist nur noch '+h+' '+(h===1?'Dorf':'Dörfer')+' von deiner Hauptburg entfernt.</p><button class="big main" id="bM2">Militärrat</button><button class="big" id="bClose">Weiter</button>');
+        $('bM2').onclick=openMil;$('bClose').onclick=closeSheet;
+      }
+    }
+  }
+}
 function secondTick(){
 
   if(G.time>=G.nextMonth)monthEnd();
   for(const k of aliveKings())completeOrders(k);
   for(const a of G.armies.slice())upkeep(a);
-  fortCheck();routeChecks();
+  fortCheck();routeChecks();capitalWarn();
   G.armies=G.armies.filter(a=>a.alive);
   for(const k of aliveKings())if(G.K[k].gar&&UK.some(u=>G.K[k].gar[u]>0))absorbGarrison(k);
 }
@@ -2318,7 +2341,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.27 · 7.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.28 · 7.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
