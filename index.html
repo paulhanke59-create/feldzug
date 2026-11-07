@@ -1339,13 +1339,20 @@ function resolveBattle(x,y){
     if(G.speed>1)G.speed=1;
   }else if(visibleAt(PL,site.x,site.y))logMsg('Schlacht bei '+where+': '+KINGS[sa].name+' gegen '+KINGS[sb].name+'.','dim');
   G.fx.push({type:'clash',x:site.x,y:site.y,t:0,dur:3.2});
-  for(const p of PA)for(const q of PB)G.cool[ck(p,q)]=G.time+25;
+  for(const p of PA)for(const q of PB)G.cool[ck(p,q)]=G.time+7;
   for(const z of winners)z.haltUntil=G.time+5;
   for(const z of losers){
     z.path=[];z.dest=null;
     const home=KINGS[z.side].capital;
     if(z.side!==PL)z.retreating=true;
-    planArmy(z,home);
+    /* Rückzug zum nächstgelegenen eigenen Ort */
+    if(z.at!==null&&G.own[z.at]===z.side){z.path=[];z.dest=null}
+    else{
+      const src=z.at!==null?z.at:z.from,rr=dijkstra(src,'move');
+      let bt=null,bd=Infinity;
+      for(const id in NODES){if(G.own[id]!==z.side||enemyAt(z.side,id))continue;const d=rr.dist[id];if(d<bd){bd=d;bt=id}}
+      if(!bt||!planArmy(z,bt))planArmy(z,home);
+    }
     z.bold=false;
   }
   for(const z of winners)z.bold=false;
@@ -2277,7 +2284,10 @@ function updateHud(){
 }
 
 /* ---------- Fenster ---------- */
-function showOverlay(html){$('card').innerHTML='<button class="x" id="bX" aria-label="Schließen">✕</button>'+html;$('overlay').classList.remove('hide');$('card').scrollTop=0}
+function showOverlay(html){
+  const c=$('card'),open=!$('overlay').classList.contains('hide'),t=(html.match(/<h1>(.*?)<\/h1>/)||[])[1],keep=open&&t&&t===c._title?c.scrollTop:0;
+  c._title=t;
+  c.innerHTML='<button class="x" id="bX" aria-label="Schließen">✕</button>'+html;$('overlay').classList.remove('hide');c.scrollTop=keep}
 function hideOverlay(){$('overlay').classList.add('hide')}
 $('overlay').addEventListener('click',e=>{if(e.target.id==='overlay'&&G&&!G.over&&!introOpen)hideOverlay()});
 let introOpen=false;
@@ -2295,7 +2305,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.23 · 7.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.24 · 7.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
