@@ -1052,15 +1052,38 @@ function orderBuild(k,kind,node){
 const roadCost=e=>({wood:Math.ceil(e.len/5),gold:Math.ceil(e.len/4)});
 const buildLabel=b=>{if(b.kind==='strasse'){const e=EMAP[b.edge];return 'Straße '+NODES[e.a].name+' – '+NODES[e.b].name}return FORT[b.kind].name+(b.kind==='mauer'?'':' bei '+NODES[b.node].name)};
 function roadPending(k,e){return G.K[k].orders.build.some(b=>b.kind==='strasse'&&EMAP[b.edge]===e)}
-/* Ist 'A' von der Hauptburg aus auf Straßen erreichbar? Sonst: erste Lücke */
-function roadGap(k,A){
+/* Straße A–B ist erlaubt, wenn A oder B schon über Straßen mit der Hauptburg verbunden ist */
+function roadReach(k){
   const home=KINGS[k].capital,seen=new Set([home]),q=[home];
-  while(q.length){const u=q.shift();if(u===A)return null;for(const {to,e} of ADJ[u]){if(e.type==='road'&&!seen.has(to)&&G.own[to]===k){seen.add(to);q.push(to)}}}
-  const pr=pathFromTo(home,A);
-  if(!pr)return{from:home,to:A};
-  let prev=home;
-  for(const n of pr.path){const e=EMAP[prev+'|'+n];if(e.type!=='road')return{from:prev,to:n};prev=n}
-  return{from:home,to:A};
+  while(q.length){const u=q.shift();for(const {to,e} of ADJ[u]){if(e.type==='road'&&!seen.has(to)&&G.own[to]===k){seen.add(to);q.push(to)}}}
+  return seen;
+}
+function gapTo(k,T){
+  const home=KINGS[k].capital,dist={},prev={},done=new Set();
+  for(const id in NODES)dist[id]=Infinity;
+  dist[home]=0;
+  for(;;){
+    let u=null,ud=Infinity;
+    for(const id in dist)if(!done.has(id)&&dist[id]<ud){ud=dist[id];u=id}
+    if(u===null||u===T)break;
+    done.add(u);
+    for(const {to,e} of ADJ[u]){
+      if(G.own[to]!==k)continue;
+      const c=ud+(e.type==='road'?0.001:1);
+      if(c<dist[to]){dist[to]=c;prev[to]=u}
+    }
+  }
+  if(!isFinite(dist[T]))return null;
+  const path=[T];let c=T;while(c!==home&&prev[c]){c=prev[c];path.unshift(c)}
+  for(let i=0;i<path.length-1;i++){if(EMAP[path[i]+'|'+path[i+1]].type!=='road')return{from:path[i],to:path[i+1],n:Math.floor(dist[T])}}
+  return null;
+}
+function roadGap(k,A,B){
+  const reach=roadReach(k);
+  if(reach.has(A)||reach.has(B))return null;
+  const ga=gapTo(k,A),gb=gapTo(k,B);
+  const g=(ga&&gb)?(ga.n<=gb.n?ga:gb):(ga||gb);
+  return g||{from:A,to:B};
 }
 function orderRoad(k,e,fromNode){
   if(e.type==='road'||roadPending(k,e)||G.own[e.a]!==k||G.own[e.b]!==k)return false;
@@ -2232,7 +2255,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.20 · 7.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.21 · 7.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2546,7 +2569,7 @@ $('info').addEventListener('click',e=>{
   else if(act==='go'&&a){planArmy(a,id);G.pick=null}
   else if(act==='fort'){if(orderBuild(PL,b.dataset.v,id))logMsg(FORT[b.dataset.v].name+' bei '+NODES[id].name+' beauftragt – wirkt zum Monatsende.','good')}
   else if(act==='road'){
-    const to=b.dataset.v,e=EMAP[id+'|'+to],gap=roadGap(PL,id);
+    const to=b.dataset.v,e=EMAP[id+'|'+to],gap=roadGap(PL,id,to);
     if(gap){showOverlay('<h1>Straße nicht möglich</h1><p>Zuerst muss der Weg nach <b>'+NODES[gap.to].name+'</b> ausgebaut werden (von '+NODES[gap.from].name+'). Nur über eine Straße kommen Material und Arbeiter dorthin.</p><button class="big" id="bClose">Verstanden</button>');return}
     if(!canPay(PL,roadCost(e))){showOverlay('<h1>Zu wenig Material</h1><p>Die Straße nach <b>'+NODES[to].name+'</b> kostet '+costText(roadCost(e))+'.</p><button class="big" id="bClose">Verstanden</button>');return}
     if(orderRoad(PL,e,id))logMsg('Straße nach '+NODES[to].name+' beauftragt – fertig zum Monatsende.','good');
@@ -2611,7 +2634,7 @@ updateHud();
 showIntro();
 requestAnimationFrame(loop);
 
-window.__game={get G(){return G},get bg(){return bg},render,updateHud,handleTap,planArmy,resolveBattle,supplyInfo,aiDecide,newGame,troops,
+window.__game={get G(){return G},roadGap,roadReach,get bg(){return bg},render,updateHud,handleTap,planArmy,resolveBattle,supplyInfo,aiDecide,newGame,troops,
   NODES,EDGES,EMAP,KINGS,KIDS,PL,routeCost,splitArmy,splitFrac,mergeArmies,sideArmies,selArmy,speedOf,advice,step,simulate,
   econPlan,orderRecruit,orderBuild,monthEnd,owned,aliveKings,addRoute,removeRoute,canPay,openEco,openMil,showMonthReport,exploredPct,
   set seed(s){G.rnd=mulberry32(s)}};
