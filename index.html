@@ -1956,8 +1956,7 @@ function render(){
     const off=(big?36:28)*k*view.s;
     const kn=G.known[id];
     let name=n.name;
-    if(big&&kn.owner)name=KINGS[kn.owner].name;
-    else if(kn.owner===PL&&G.lvl[id])name+=' ★'+G.lvl[id];
+    if(kn.owner===PL&&G.lvl[id])name+=' ★'+G.lvl[id];
     haloText(name,p.x,p.y+off+4,big?13:11.5,nodeLabelColor(id),'center',true);
   }
   const sa2=sa;
@@ -2095,7 +2094,7 @@ const exploredPct=()=>{let c=0;for(let i=0;i<G.expl.length;i++)c+=G.expl[i];retu
 function nodeInfoHtml(id){
   const n=NODES[id],a=selArmy(),kn=G.known[id];
   const own=kn?kn.owner:null;
-  let h='<div class="ih"><b>'+(n.type==='castle'&&own?'Hauptburg '+KINGS[own].name:n.name)+'</b> <span class="tag">'+TYPE_LAB[n.type]+(own?' · '+KINGS[own].name:(isEco(n)||n.type==='tower'?' · niemandes Land':''))+'</span></div>';
+  let h='<div class="ih"><b>'+n.name+'</b> <span class="tag">'+TYPE_LAB[n.type]+(own?' · '+KINGS[own].name:(isEco(n)||n.type==='tower'?' · niemandes Land':''))+'</span></div>';
   if(own===PL&&G.lvl[id]){const mi=Math.round(G.mood[id]);h+='<div class="tag">Stufe '+G.lvl[id]+' von 5 · Stimmung '+mi+' % '+(G.mood[id]>=60?'(wächst)':G.mood[id]<40?'(verfällt)':'(stabil)')+'</div>'}
   if(own===PL){
     const cn=CAPN[n.type];
@@ -2193,7 +2192,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.18 · 7.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.19 · 7.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
