@@ -66,6 +66,11 @@ input.rs::-moz-range-track{height:10px;border-radius:5px;background:#6a4a2a;bord
 input.rs::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;margin-top:-10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f5d98a,#c8932f 70%,#8a6018);border:2px solid #4a2f10;box-shadow:0 2px 4px rgba(0,0,0,.5)}
 input.rs::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#c8932f;border:2px solid #4a2f10}
 input.rs:disabled{opacity:.4}
+
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 2px}
+.modes button{padding:9px 6px;border-radius:10px;border:2px solid #8a6a38;background:linear-gradient(#f4e6bd,#e2cd96);color:#3a2412;font:600 15px Georgia,serif}
+.modes button.sel{background:linear-gradient(#c8932f,#a8751f);color:#fff7dc;border-color:#4a2f10;box-shadow:inset 0 1px 3px rgba(0,0,0,.35)}
+.mdesc{min-height:34px;margin:4px 0 8px}
 #armybar{display:flex;gap:6px;overflow-x:auto;padding:2px 52px 2px 0}
 .chip{flex:0 0 auto;padding:5px 11px;border-radius:16px;border:1px solid #2e1f10;background:linear-gradient(#7d5a36,#5b3f24);color:#f6e7c1;font-size:12.5px;box-shadow:0 2px 5px rgba(0,0,0,.45);height:auto}
 .chip.sel{background:linear-gradient(#f0c24c,#c8901e);color:#2c1d08;font-weight:bold}
@@ -614,7 +619,7 @@ function dateInfo(t){
     left:Math.max(0,Math.ceil((MONTH_S-(t%MONTH_S))/DAY_S)),frac:(t%MONTH_S)/MONTH_S};
 }
 const EXP=20,GW=Math.ceil(W/EXP);
-let G=null,bg=null;
+let G=null,bg=null,MODE='normal';
 const explCv=document.createElement('canvas');explCv.width=GW;explCv.height=GW;
 const ectx=explCv.getContext('2d');
 const bump={};
@@ -691,6 +696,21 @@ function mkArmy(side,name,units,node){
   return a;
 }
 function defaultWeights(){return{farm:36,wood:10,ore:12,coal:8,smelt:10,smith:14,fletch:10}}
+const PERSONAS=['eroberer','bewahrer','raecher','opportunist','reichsgruender','haendler'];
+const PERSONA_INFO={
+  eroberer:['Eroberer','will Land gewinnen und greift Nachbarn an, die nicht stärker sind als er'],
+  bewahrer:['Bewahrer','hält sein Reich zusammen und greift nur an, wenn man ihm Land nimmt'],
+  raecher:['Rächer','vergisst nichts: wer ihm Orte nimmt, wird verfolgt'],
+  opportunist:['Opportunist','schlägt zu, sobald ein Nachbar schwach oder geschwächt ist'],
+  reichsgruender:['Reichsgründer','will König werden und geht gegen den Stärksten vor'],
+  haendler:['Händler','lebt vom Handel und kämpft nur, wenn er mehrfach angegriffen wurde']
+};
+const MODE_INFO={
+  easy:['Friedlich','Alle Feinde leben friedlich vor sich hin und wollen kein Land erobern.'],
+  normal:['Normal','Die Feinde erobern Land und Dörfer, haben es aber nicht auf dein ganzes Reich abgesehen.'],
+  hard:['Aggressiv','Die Feinde wollen in kurzer Zeit dein Königreich vollständig erobern.'],
+  history:['Geschichtlich','Jeder Herrscher hat ein eigenes Ziel. Es ändert sich mit seinen Verlusten und der Schwäche der Nachbarn.']
+};
 function newGame(){
   const seed=((Date.now()%100000)+Math.floor(Math.random()*1000))|0;
   genWorld(seed);
@@ -698,7 +718,7 @@ function newGame(){
      seen:{},visIds:{},intel:{},nextId:1,sel:null,pick:null,cnt:{},cool:{},
      rnd:mulberry32(seed+3),armies:[],K:{},routes:[],fx:[],parts:[],pend:{gold:0,food:0,iron:0,wood:0},
      accS:0,accV:0,accAI:0,nextMonth:MONTH_S,council:false,report:[],monthFlash:-9999,
-     expl:new Uint8Array(GW*GW),lastReveal:{}};
+     expl:new Uint8Array(GW*GW),lastReveal:{},mode:MODE,persona:{},grudge:{},start0:{}};
   ectx.clearRect(0,0,GW,GW);
   for(const id in NODES)G.own[id]=NODES[id].owner;
   for(const k of KIDS){
@@ -710,6 +730,9 @@ function newGame(){
     G.armies.push(mkArmy(k,'Hauptheer',{inf:Math.round(170*j),bow:Math.round(70*j),cav:Math.round(30*j),can:6,scout:4},cap));
   }
   G.sel=sideArmies(PL)[0].id;
+  {const ps=PERSONAS.slice();for(let i=ps.length-1;i>0;i--){const j=Math.floor(G.rnd()*(i+1));[ps[i],ps[j]]=[ps[j],ps[i]]}
+   KIDS.filter(k=>k!==PL).forEach((k,i)=>{G.persona[k]=ps[i%ps.length];G.grudge[k]={}});
+   for(const k of KIDS)G.start0[k]=owned(k).length}
   buildBackground(seed);
   for(const id in NODES)G.known[id]=null;
   G.vgar={};G.visited={};G.vgot={};G.pf={};G.lvl={};G.mood={};G.dev={};G.devLog=[];
@@ -882,7 +905,7 @@ function onArrive(a){
   if(enemyAt(side,n.id)){if(a.dest===n.id)a.dest=null;return}
   if(n.type==='castle'){
     const ow=G.own[n.id];
-    if(ow!==side&&G.K[ow]&&G.K[ow].alive)conquer(side,ow);
+    if(ow!==side&&G.K[ow]&&G.K[ow].alive&&(side===PL||a.goal===n.id))conquer(side,ow);
   }else if(G.own[n.id]!==side&&(isEco(n)||n.type==='tower')){
     occupy(a,n);
   }
@@ -891,6 +914,7 @@ function onArrive(a){
 function occupy(a,n){
   const prev=G.own[n.id],side=a.side;
   G.own[n.id]=side;
+  if(prev&&prev!==side&&G.grudge[prev])G.grudge[prev][side]=(G.grudge[prev][side]||0)+1;
   if(prev===PL||side===PL||visibleAt(PL,n.x,n.y)){G.known[n.id]={owner:side};G.knownFort[n.id]=null}
   if(G.lvl[n.id]){G.lvl[n.id]=Math.max(1,G.lvl[n.id]-1);G.mood[n.id]=25;G.dev[n.id]=0}
   if(G.fort[n.id]&&G.fort[n.id].owner!==side)delete G.fort[n.id];
@@ -1461,6 +1485,29 @@ function nearestFreeEco(b,limit){
   }
   return bd<=limit?best:null;
 }
+function aiProfile(k){
+  const m=G.mode||'normal';
+  if(m==='easy')return{expand:false,chase:false,conq:null,cap:null};
+  if(m==='normal')return{expand:true,chase:true,conq:{m:4,t:350,ok:()=>true},cap:null};
+  if(m==='hard')return{expand:true,chase:true,conq:{m:2,t:250,ok:()=>true},cap:{m:3,t:300,pref:()=>G.K[PL].alive?KINGS[PL].capital:null,ok:()=>true}};
+  /* geschichtlich: Persönlichkeit + Entwicklung */
+  const p=(G.persona&&G.persona[k])||'eroberer',gr=G.grudge&&G.grudge[k]||{};
+  const mine=soldiersOf(k),cnt=owned(k).length,base=G.start0[k]||cnt;
+  const others=aliveKings().filter(o=>o!==k);
+  const strongest=others.slice().sort((a,c)=>soldiersOf(c)+owned(c).length*20-soldiersOf(a)-owned(a).length*20)[0];
+  const turtle=cnt<base*0.55||mine<250;   /* zu schwach: verteidigt nur */
+  const g=o=>gr[o]||0;
+  const prof={expand:true,chase:true,conq:null,cap:null};
+  const grudgeOk=o=>g(o)>0;
+  if(p==='eroberer'){prof.conq={m:3,t:300,ok:o=>soldiersOf(o)<=mine*1.15||g(o)>0};if(owned(k).length>=base*1.4&&strongest)prof.cap={m:8,t:500,pref:()=>KINGS[strongest].capital,ok:()=>true}}
+  else if(p==='bewahrer'){prof.conq={m:3,t:350,ok:grudgeOk}}
+  else if(p==='raecher'){prof.conq={m:3,t:300,ok:grudgeOk};const w=others.sort((a,c)=>g(c)-g(a))[0];if(w&&g(w)>=2)prof.cap={m:5,t:400,pref:()=>KINGS[w].capital,ok:o=>o===w}}
+  else if(p==='opportunist'){prof.conq={m:4,t:300,ok:o=>soldiersOf(o)<mine*0.7||owned(o).length<(G.start0[o]||99)*0.7||g(o)>0};const weak=others.find(o=>soldiersOf(o)<mine*0.5);if(weak)prof.cap={m:5,t:350,pref:()=>KINGS[weak].capital,ok:o=>o===weak}}
+  else if(p==='reichsgruender'){if(strongest){prof.conq={m:4,t:350,ok:o=>o===strongest||g(o)>0};prof.cap={m:7,t:450,pref:()=>KINGS[strongest].capital,ok:o=>o===strongest}}}
+  else if(p==='haendler'){prof.conq={m:5,t:350,ok:o=>g(o)>=2}}
+  if(turtle){prof.conq=null;prof.cap=null;prof.expand=cnt<base}
+  return prof;
+}
 function aiDecide(b){
   const k=b.side,home=KINGS[k].capital;
   if(G.own[home]!==k)return;
@@ -1492,8 +1539,9 @@ function aiDecide(b){
     b.goal=null;
   }
   const setGoal=t=>{if(t!==b.at&&planArmy(b,t)){b.goal=t;return true}return false};
+  const P=aiProfile(k);
   /* Verfolgung nur bei klarer Überlegenheit und nach der Anfangszeit */
-  if(month>=2&&near&&near.d<300&&troops(b)>=1.3*troops(near.e)){const t=nearestNode(near.p.x,near.p.y);if(setGoal(t))return}
+  if(P.chase&&month>=2&&near&&near.d<300&&troops(b)>=1.3*troops(near.e)&&(G.mode!=='history'||P.conq)){const t=nearestNode(near.p.x,near.p.y);if(setGoal(t))return}
   const r=dijkstra(b.at,'move');
   const pick=(pred,limit)=>{
     let best=null,bd=Infinity;
@@ -1505,17 +1553,20 @@ function aiDecide(b){
     return bd<=limit?best:null;
   };
   /* 1. freie Orte besetzen */
-  const free=pick((n,id)=>(isEco(n)||n.type==='tower')&&!G.own[id],14);
-  if(free&&b.food>=fc*0.5&&setGoal(free))return;
-  /* 2. später: Orte anderer Reiche erobern (nicht die Hauptburg) */
-  if(month>=4&&troops(b)>=350&&b.food>=fc*0.6){
-    const foe=pick((n,id)=>(isEco(n)||n.type==='tower')&&G.own[id]&&G.own[id]!==k,10);
+  if(P.expand){
+    const free=pick((n,id)=>(isEco(n)||n.type==='tower')&&!G.own[id],14);
+    if(free&&b.food>=fc*0.5&&setGoal(free))return;
+  }
+  /* 2. Orte anderer Reiche erobern (nicht die Hauptburg) */
+  if(P.conq&&month>=P.conq.m&&troops(b)>=P.conq.t&&b.food>=fc*0.6){
+    const foe=pick((n,id)=>(isEco(n)||n.type==='tower')&&G.own[id]&&G.own[id]!==k&&P.conq.ok(G.own[id]),G.mode==='hard'?16:10);
     if(foe&&setGoal(foe))return;
   }
-  /* 3. noch später: Hauptburg angreifen */
-  if(month>=6&&troops(b)>=450&&b.food>=fc*0.6){
-    let best=null,bd=Infinity;
-    for(const o of aliveKings()){if(o===k)continue;const cap=KINGS[o].capital;if(r.dist[cap]<bd){bd=r.dist[cap];best=cap}}
+  /* 3. Hauptburg angreifen */
+  if(P.cap&&month>=P.cap.m&&troops(b)>=P.cap.t&&b.food>=fc*0.6){
+    let best=P.cap.pref?P.cap.pref():null;
+    if(best&&(G.own[best]===k||!G.K[G.own[best]]||!G.K[G.own[best]].alive))best=null;
+    if(!best){let bd=Infinity;for(const o of aliveKings()){if(o===k||!P.cap.ok(o))continue;const cap=KINGS[o].capital;if(r.dist[cap]<bd){bd=r.dist[cap];best=cap}}}
     if(best&&setGoal(best))return;
   }
   /* sonst: bleiben, wo man ist (eigenes Gebiet) oder heimkehren */
@@ -2687,7 +2738,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.42 · 8.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.43 · 8.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2695,7 +2746,13 @@ function showIntro(){
   '<li><b>Militärrat</b>: Heer, Rekruten, Befestigungen, Späher, Kriegszüge.</li>'+
   '<li>Rekruten und Bauten brauchen einige Tage; den Fortschritt siehst du im Militärrat und am Ort. Das Spiel läuft in Echtzeit (⏸ Pause, 1×/2×/4×); Fenster halten die Zeit an.</li>'+
   '<li>Ziel: <b>Erobere Land!</b> Besetze Dörfer, Äcker, Minen und Türme und nimm den Feinden ihre Orte ab. Du gewinnst, wenn du die ganze Insel beherrschst, also alle fünf anderen Hauptburgen erobert hast. Fällt deine Hauptburg, ist alles verloren. <b>Katapulte</b> brechen Mauern und Schanzen.</li></ul>'+
+  '<h2>Schwierigkeit</h2><div class="modes" id="modes">'+['easy','normal','hard','history'].map(m=>'<button data-m="'+m+'" class="'+(MODE===m?'sel':'')+'">'+MODE_INFO[m][0]+'</button>').join('')+'</div><p class="mdesc" id="mdesc"><small>'+MODE_INFO[MODE][1]+'</small></p>'+
   (saveInfo()?'<button class="big main" id="bLoad">Spielstand fortsetzen (Monat '+saveInfo().m+')</button>':'')+'<button class="big main" id="bStart">'+(saveInfo()?'Neues Spiel: ':'')+'Erster Wirtschaftsrat</button><button class="big" id="bStart2">Gleich losspielen</button>');
+  $('modes').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    MODE=b.dataset.m;G.mode=MODE;
+    $('modes').querySelectorAll('button').forEach(x=>x.classList.toggle('sel',x===b));
+    $('mdesc').innerHTML='<small>'+MODE_INFO[MODE][1]+'</small>';
+  });
   if($('bLoad'))$('bLoad').onclick=()=>{if(!loadGame()){$('bLoad').textContent='Laden fehlgeschlagen'}};
   $('bStart').onclick=()=>{introOpen=false;openEco()};
   $('bStart2').onclick=()=>{introOpen=false;hideOverlay()};
@@ -2704,7 +2761,7 @@ function showGameOver(){
   introOpen=true;
   const won=G.over.winner===PL;
   showOverlay('<h1>'+(won?'Sieg!':'Niederlage')+'</h1><p>'+G.over.reason+'</p><p>Spielzeit: '+fmtTime(G.time)+' · '+dateInfo(G.time).m+' Monate</p><button class="big main" id="bAgain">Neues Spiel</button>');
-  $('bAgain').onclick=()=>{introOpen=false;hideOverlay();startGame()};
+  $('bAgain').onclick=()=>{startGame();showIntro()};
 }
 function showScroll(){
   const di=dateInfo(G.time),s=$('scroll');
@@ -2866,6 +2923,7 @@ function openNodeInfo(id){
   const f=G.knownFort[id];
   add('Befestigung',f?FORT[f.type].name:(own===PL?'keine':'keine sichtbar')+(n.type==='castle'&&own===PL?' (Mauerstufe '+G.wall[own]+' von 2)':''));
   if(n.type==='castle'&&own===PL)add('Mauerstufe',G.wall[PL]+' von 2');
+  if(n.type==='castle'&&own&&own!==PL&&G.mode==='history'&&G.persona[own])add('Herrscher',PERSONA_INFO[G.persona[own]][0]+' – '+PERSONA_INFO[G.persona[own]][1]);
   add('Entfernung zur Hauptburg','ca. '+Math.round(Math.hypot(n.x-cap.x,n.y-cap.y)/10)+' Wegeinheiten');
   const pr=pathFromTo(KINGS[PL].capital,id);
   if(pr&&G.known[id])add('Marsch von der Hauptburg','ca. '+Math.ceil(pr.cost/2.5*TURN_S)+' s');
@@ -3061,6 +3119,8 @@ function loadGame(){
     const g=d.G;
     g.rnd=mulberry32(d.seed+3+Math.floor(g.time));
     g.expl=b64d(d.expl);g.fx=[];g.parts=[];
+    g.mode=g.mode||'normal';g.persona=g.persona||{};g.grudge=g.grudge||{};g.start0=g.start0||{};
+    MODE=g.mode;
     if(!d.wv)for(const k in g.wall)g.wall[k]=Math.max(0,Math.min(2,g.wall[k]-1));
     G=g;
     buildBackground(d.seed);
