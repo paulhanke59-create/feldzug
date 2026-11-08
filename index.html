@@ -651,8 +651,8 @@ const RECR={
 const WALL_COST=[{wood:80,iron:30,gold:100},{wood:170,iron:80,gold:240}],WALL_DAYS=[20,35];
 const wallCost=k=>WALL_COST[Math.min(1,G.wall[k])];
 const FORT={
-  schanze:{name:'Feldschanze',cost:{wood:30,gold:40},desc:'Palisade: Verteidigung +30 %'},
-  turm:   {name:'Wachturm',cost:{wood:60,gold:80,iron:20},desc:'Verteidigung +35 %, weite Sicht'},
+  schanze:{name:'Wachschanze',cost:{wood:30,gold:40},desc:'Palisade: Verteidigung +30 %'},
+  turm:   {name:'Befestigungsanlage',cost:{wood:60,gold:80,iron:20},desc:'Verteidigung +35 %, weite Sicht'},
   ausbau: {name:'Dorf fördern',cost:{wood:40,gold:60},desc:'Mehr Wohlstand: Ort steigt schneller auf'},
   strasse:{name:'Straße',cost:{},desc:'Ausbau eines Weges zur Straße'},
   mauer:  {name:'Burgmauer',cost:{wood:80,iron:30,gold:100},desc:'Stufe 1 und 2: die Burg wird deutlich stärker'}
@@ -1122,7 +1122,7 @@ function buildAllowed(k,kind,node){
   if(kind==='ausbau')return n.type!=='castle'&&(G.lvl[node]||1)<5&&!G.K[k].orders.build.some(b=>b.node===node&&b.kind==='ausbau');
   if(kind==='mauer')return n.type==='castle'&&G.wall[k]<2&&!G.K[k].orders.build.some(b=>b.kind==='mauer');
   if(n.type==='castle')return false;
-  if(G.fort[node]&&!(kind==='turm'&&G.fort[node].type==='schanze'))return false;
+  if(kind==='turm'?!(G.fort[node]&&G.fort[node].type==='schanze'):G.fort[node])return false;
   if(G.K[k].orders.build.some(b=>b.node===node&&b.kind!=='mauer'&&b.kind!=='ausbau'))return false;
   return true;
 }
@@ -2671,7 +2671,7 @@ function nodeInfoHtml(id){
   if(own===PL&&n.type!=='castle'){
     for(const kd of ['schanze','turm']){
       const ok=buildAllowed(PL,kd,id);
-      if(ok||G.fort[id]===undefined)h+='<button data-act="fort" data-v="'+kd+'"'+(ok&&canPay(PL,FORT[kd].cost)?'':' disabled')+'>'+FORT[kd].name+' · '+costText(FORT[kd].cost)+'</button>';
+      if(ok||(kd==='schanze'&&G.fort[id]===undefined))h+='<button data-act="fort" data-v="'+kd+'"'+(ok&&canPay(PL,FORT[kd].cost)?'':' disabled')+'>'+FORT[kd].name+' · '+costText(FORT[kd].cost)+'</button>';
     }
   }
   if(own===PL&&a&&a.at===id)for(const {to,e} of ADJ[id]){
@@ -2761,7 +2761,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.46 · 8.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.47 · 8.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
