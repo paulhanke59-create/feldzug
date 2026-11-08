@@ -105,7 +105,8 @@ button:disabled{opacity:.45}
 .cal2 .cal span:last-child{font-size:11px;opacity:.8}
 .spd{flex-direction:row!important}
 .mbar{margin:0}
-.grid4{display:grid;grid-template-columns:1fr 1fr;gap:4px;flex:1}
+.grid4{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;flex:1}
+#rFood,#hud .r2,#hud .bars,#miniLbl{display:none!important}
 .grid4 .rc{padding:2px 4px}
 .pb{height:8px;background:rgba(60,40,20,.18);border-radius:4px;overflow:hidden;margin-top:4px;border:1px solid rgba(90,70,45,.35)}.pb i{display:block;height:100%;background:linear-gradient(#e0b04a,#a87a2c)}
 </style>
@@ -2472,8 +2473,9 @@ function measureChests(){
   for(const [k,id] of [['gold','rGold'],['food','rFood'],['iron','rIron'],['wood','rWood']]){
     const r=$(id).getBoundingClientRect();
     const x=r.left+20,y=r.top+r.height/2;
-    if(isFinite(x)&&isFinite(y)&&x>0)chestPos[k]={x,y};
+    if(isFinite(x)&&isFinite(y)&&x>0&&r.width>0)chestPos[k]={x,y};
   }
+  chestPos.food=chestPos.gold;
 }
 const exploredPct=()=>{let c=0;for(let i=0;i<G.expl.length;i++)c+=G.expl[i];return Math.round(c/G.expl.length*100)};
 function nodeInfoHtml(id){
@@ -2589,7 +2591,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.33 · 8.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.34 · 8.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
