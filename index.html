@@ -1622,16 +1622,53 @@ function drawForts(n,k,known){
   }
   c.restore();
 }
-function drawWalls(n,k){
+function wallTower(c,x,y,h,w,roofC){
+  const g=lin(c,x-w,y,x+w,y,'#B2A790','#6E6556');
+  c.fillStyle=g;c.strokeStyle='#3D2E22';c.lineWidth=1;c.fillRect(x-w,y-h,w*2,h);c.strokeRect(x-w,y-h,w*2,h);
+  c.strokeStyle='rgba(40,30,20,.35)';c.lineWidth=.6;for(let yy=y-h+4;yy<y;yy+=4){c.beginPath();c.moveTo(x-w,yy);c.lineTo(x+w,yy);c.stroke()}
+  c.fillStyle='#8C8270';c.strokeStyle='#3D2E22';c.lineWidth=.9;
+  for(let i=0;i<3;i++){c.fillRect(x-w+i*(w*2/3)+0.2,y-h-3.6,w*2/3-0.6,3.8);c.strokeRect(x-w+i*(w*2/3)+0.2,y-h-3.6,w*2/3-0.6,3.8)}
+  c.fillStyle='#241A12';c.fillRect(x-0.9,y-h*0.6,1.8,4.4);
+}
+function wallBand(c,lvl,a0,a1,rx,ry,cy,h){
+  const N=26;
+  for(let i=0;i<N;i++){
+    const t0=a0+(a1-a0)*i/N,t1=a0+(a1-a0)*(i+1)/N;
+    const x0=Math.cos(t0)*rx,y0=cy+Math.sin(t0)*ry,x1=Math.cos(t1)*rx,y1=cy+Math.sin(t1)*ry;
+    const sh=0.5+0.5*Math.cos((t0+t1)/2-Math.PI*0.75);
+    const v=Math.round(120+sh*70);
+    c.fillStyle='rgb('+v+','+(v-8)+','+(v-22)+')';
+    c.beginPath();c.moveTo(x0,y0);c.lineTo(x1,y1);c.lineTo(x1,y1-h);c.lineTo(x0,y0-h);c.closePath();c.fill();
+    c.strokeStyle='rgba(40,30,20,.55)';c.lineWidth=.7;c.stroke();
+    if(i%2===0){ /* Zinne */
+      c.fillStyle='rgb('+(v+10)+','+(v+2)+','+(v-12)+')';
+      c.beginPath();c.moveTo(x0,y0-h);c.lineTo(x1,y1-h);c.lineTo(x1,y1-h-3.6);c.lineTo(x0,y0-h-3.6);c.closePath();c.fill();c.stroke();
+    }
+    if(lvl>=3&&i%4===1){c.strokeStyle='rgba(40,30,20,.35)';c.beginPath();c.moveTo((x0+x1)/2,(y0+y1)/2-h*0.5);c.lineTo((x0+x1)/2,(y0+y1)/2-h*0.5-0.01);c.stroke();c.fillStyle='rgba(30,22,14,.7)';c.fillRect((x0+x1)/2-0.6,(y0+y1)/2-h*0.7,1.2,3.2)}
+  }
+}
+function drawWalls(n,k,front){
   const ow=G.known[n.id]&&G.known[n.id].owner;
   const lvl=ow?G.wall[ow]:0;
   if(lvl<2)return;
   const c=ctx;c.save();c.translate(n.x,n.y);c.scale(k,k);
-  c.strokeStyle='#4A3D2E';c.fillStyle='#8B7B63';c.lineWidth=1.2;
-  for(let l=0;l<lvl-1;l++){
-    const m=34+l*7;
-    c.beginPath();c.moveTo(-m,18);c.lineTo(-m,-2-l*2);c.lineTo(m,-2-l*2);c.lineTo(m,18);c.stroke();
-    for(let x=-m;x<=m;x+=9){c.fillRect(x-2,-8-l*2,5,6);c.strokeRect(x-2,-8-l*2,5,6)}
+  const rx=38+(lvl-2)*4,ry=19+(lvl-2)*2,cy=9,h=8+(lvl-2)*3;
+  c.lineJoin='round';
+  if(!front){
+    wallBand(c,lvl,Math.PI,Math.PI*2,rx,ry,cy,h);
+    wallTower(c,Math.cos(Math.PI*1.2)*rx,cy+Math.sin(Math.PI*1.2)*ry,h+5,4.2);
+    wallTower(c,Math.cos(Math.PI*1.8)*rx,cy+Math.sin(Math.PI*1.8)*ry,h+5,4.2);
+  }else{
+    wallBand(c,lvl,0,Math.PI,rx,ry,cy,h);
+    /* Tor in der Mitte vorne */
+    const gy=cy+ry;
+    wallTower(c,-7,gy,h+6,4.6);wallTower(c,7,gy,h+6,4.6);
+    c.fillStyle='#8C8270';c.strokeStyle='#3D2E22';c.lineWidth=1;c.fillRect(-7,gy-h-2,14,h+2);c.strokeRect(-7,gy-h-2,14,h+2);
+    c.fillStyle='#2A1E14';c.beginPath();c.moveTo(-4,gy);c.lineTo(-4,gy-h*0.6);c.arc(0,gy-h*0.6,4,Math.PI,0);c.lineTo(4,gy);c.closePath();c.fill();
+    c.strokeStyle='#7A6A55';c.lineWidth=.7;for(let x=-3;x<=3;x+=2){c.beginPath();c.moveTo(x,gy);c.lineTo(x,gy-h*0.6-3);c.stroke()}
+    wallTower(c,Math.cos(0)*rx,cy,h+5,4.2);wallTower(c,-rx,cy,h+5,4.2);
+    wallTower(c,Math.cos(Math.PI*0.22)*rx,cy+Math.sin(Math.PI*0.22)*ry,h+5,4.2);
+    wallTower(c,Math.cos(Math.PI*0.78)*rx,cy+Math.sin(Math.PI*0.78)*ry,h+5,4.2);
   }
   c.restore();
 }
@@ -2322,8 +2359,9 @@ function render(){
       gr.addColorStop(0,KINGS[ow].color+'55');gr.addColorStop(1,KINGS[ow].color+'00');
       ctx.fillStyle=gr;ctx.beginPath();ctx.arc(n.x,n.y,64*k,0,6.283);ctx.fill();
     }
-    if(n.type==='castle')drawWalls(n,k);
+    if(n.type==='castle')drawWalls(n,k,false);
     drawNodeSymbol(n,k);
+    if(n.type==='castle')drawWalls(n,k,true);
     if(G.knownFort[id])drawForts(n,k,G.knownFort[id]);
   }
   for(const b of G.K[PL].orders.build){
@@ -2591,7 +2629,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.35 · 8.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.36 · 8.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
