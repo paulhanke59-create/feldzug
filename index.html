@@ -73,6 +73,10 @@ input.rs:disabled{opacity:.4}
 .modes button{padding:9px 6px;border-radius:10px;border:2px solid #8a6a38;background:linear-gradient(#f4e6bd,#e2cd96);color:#3a2412;font:600 15px Georgia,serif}
 .modes button.sel{background:linear-gradient(#c8932f,#a8751f);color:#fff7dc;border-color:#4a2f10;box-shadow:inset 0 1px 3px rgba(0,0,0,.35)}
 .mdesc{min-height:34px;margin:4px 0 8px}
+.icrow{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin:3px 0}
+.ic{display:inline-flex;align-items:center;gap:3px;padding:1px 7px 1px 5px;border-radius:12px;background:rgba(90,60,30,.12);border:1px solid rgba(90,60,30,.25);font-size:14px;white-space:nowrap}
+.ic b{font-weight:700;font-size:14px}
+.ic.lack{background:rgba(180,40,30,.14);border-color:rgba(180,40,30,.55);color:#9a2a1c}
 #armybar{display:flex;gap:6px;overflow-x:auto;padding:2px 52px 2px 0}
 .chip{flex:0 0 auto;padding:5px 11px;border-radius:16px;border:1px solid #2e1f10;background:linear-gradient(#7d5a36,#5b3f24);color:#f6e7c1;font-size:12.5px;box-shadow:0 2px 5px rgba(0,0,0,.45);height:auto}
 .chip.sel{background:linear-gradient(#f0c24c,#c8901e);color:#2c1d08;font-weight:bold}
@@ -685,7 +689,10 @@ const workforce=k=>Math.max(0,Math.round(popOf(k)*0.65-soldiersOf(k)));
 function canPay(k,c){const s=G.K[k].stock;for(const r in c)if(s[r]<c[r]-1e-9)return false;return true}
 function pay(k,c){const s=G.K[k].stock;for(const r in c)s[r]-=c[r]}
 function refund(k,c){const s=G.K[k].stock;for(const r in c)s[r]+=c[r]}
-const costText=c=>Object.keys(c).map(r=>c[r]+' '+RLAB[r]).join(', ');
+const RICON={food:'🍞',wood:'🪵',ore:'⛰️',coal:'⚫',iron:'🔩',gold:'🪙',arms:'⚔️',bows:'🏹',ammo:'🪶',cannons:'🪨'};
+const UICON={inf:'🛡️',bow:'🏹',cav:'🐎',can:'🪨',scout:'👁️'};
+const costText=c=>Object.keys(c).filter(r=>c[r]>0).map(r=>{const lack=G&&G.K&&G.K[PL]&&G.K[PL].stock[r]<c[r];return '<span class="ic'+(lack?' lack':'')+'">'+RICON[r]+'<b>'+c[r]+'</b></span>'}).join('');
+const stockText=ks=>ks.map(r=>'<span class="ic">'+RICON[r]+'<b>'+Math.floor(G.K[PL].stock[r])+'</b></span>').join('');
 const fmtTime=t=>{t=Math.floor(t);return Math.floor(t/60)+':'+String(t%60).padStart(2,'0')};
 
 function mkArmy(side,name,units,node){
@@ -2740,7 +2747,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.44 · 8.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.45 · 8.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2832,41 +2839,40 @@ function dirHints(){
 }
 function openMil(){
   const K=G.K[PL],a=selArmy();
-  let h='<h1>Militärrat</h1><p><small>Gold '+f0(K.stock.gold)+' · Waffen '+f0(K.stock.arms)+' · Bögen '+f0(K.stock.bows)+' · Munition '+f0(K.stock.ammo)+' · Katapulte '+f0(K.stock.cannons)+' · Eisen '+f0(K.stock.iron)+' · Holz '+f0(K.stock.wood)+'</small></p>';
+  let h='<h1>Militärrat</h1><div class="icrow">'+stockText(['gold','arms','bows','ammo','cannons','iron','wood'])+'</div>';
   h+='<h2>Heere</h2>';
   for(const x of sideArmies(PL)){
-    const u=UK.filter(t=>x.units[t]>0).map(t=>x.units[t]+' '+UNAME[t]).join(', ');
-    h+='<div class="row"><div><b>'+x.name+'</b>'+(x===a?' ✔':'')+'<br><small>'+u+' · '+(x.at!==null?NODES[x.at].name:'unterwegs')+' · Brot '+f0(x.food)+'</small></div><button data-sel="'+x.id+'">Wählen</button></div>';
+    const u=UK.filter(t=>x.units[t]>0).map(t=>'<span class="ic">'+UICON[t]+'<b>'+x.units[t]+'</b></span>').join('');
+    h+='<div class="row"><div><b>'+x.name+'</b>'+(x===a?' ✔':'')+'<br><span class="icrow">'+u+'<span class="ic">🍞<b>'+f0(x.food)+'</b></span></span><small>'+(x.at!==null?NODES[x.at].name:'unterwegs')+'</small></div><button data-sel="'+x.id+'">Wählen</button></div>';
   }
   if(a){
     const canSplit=a.at!==null&&sideArmies(PL).length<MAX_ARMIES&&troops(a)>=2*MIN_SPLIT;
     const acts=[
-      {l:'Marsch stoppen',en:a.path.length>0,fn:()=>{a.path=[];a.dest=null}},
-      {l:'Hälfte abspalten',en:canSplit,fn:()=>{const n=splitFrac(a,1/2);if(n)G.sel=n.id}},
-      {l:'Drittel abspalten',en:canSplit,fn:()=>{const n=splitFrac(a,1/3);if(n)G.sel=n.id}},
-      {l:'Späher abspalten ('+a.units.scout+')',en:a.at!==null&&a.units.scout>0&&sideArmies(PL).length<MAX_ARMIES&&troops(a)>a.units.scout,fn:()=>{const n=splitScouts(a);if(n)G.sel=n.id}}
+      {l:'⏹ Stopp',en:a.path.length>0,fn:()=>{a.path=[];a.dest=null}},
+      {l:'½ teilen',en:canSplit,fn:()=>{const n=splitFrac(a,1/2);if(n)G.sel=n.id}},
+      {l:'⅓ teilen',en:canSplit,fn:()=>{const n=splitFrac(a,1/3);if(n)G.sel=n.id}},
+      {l:'👁️ '+a.units.scout+' abspalten',en:a.at!==null&&a.units.scout>0&&sideArmies(PL).length<MAX_ARMIES&&troops(a)>a.units.scout,fn:()=>{const n=splitScouts(a);if(n)G.sel=n.id}}
     ];
-    for(const m of sideArmies(PL).filter(x=>x!==a&&x.at!==null&&x.at===a.at))acts.push({l:'Mit '+m.name+' vereinen',en:true,fn:()=>mergeArmies(a,m)});
+    for(const m of sideArmies(PL).filter(x=>x!==a&&x.at!==null&&x.at===a.at))acts.push({l:'⊕ '+m.name,en:true,fn:()=>mergeArmies(a,m)});
     h+='<div class="btns2">'+acts.map((c,i)=>'<button data-a="'+i+'"'+(c.en?'':' disabled')+'>'+c.l+'</button>').join('')+'</div>';
-    h+='<p><small>Gewähltes Heer: <b>'+a.name+'</b>. Ziel auf der Karte antippen → „Hierher marschieren“. Teilen geht nur an einem Ort.</small></p>';
     $('card')._acts=acts;
   }
-  h+='<h2>Rekruten (kommen nach einigen Tagen in die Hauptburg)</h2>';
+  h+='<h2>Rekruten</h2>';
   for(const t of UK){
     const r=RECR[t],n=K.orders.rec[t];
     const qi=K.orders.rq.filter(x=>x.t===t),first=qi[0];
     let aff=99;for(const k2 in r.cost)if(r.cost[k2]>0)aff=Math.min(aff,Math.floor((K.stock[k2]||0)/r.cost[k2]));
     const mx=Math.min(20,n+aff);
-    h+='<div class="rrow'+(mx<1?' off':'')+'"><div class="rtop"><span><b>'+r.n+' '+UNAME[t]+'</b> <small>('+REC_DAYS[t]+' Tage je Gruppe)</small></span><span class="rval" id="rv_'+t+'"><b>'+n+'</b> × '+r.n+' = '+(n*r.n)+'</span></div><input type="range" class="rs" min="0" max="'+Math.max(mx,1)+'" step="1" value="'+n+'" data-t="'+t+'"'+(mx<1?' disabled':'')+'><div class="rsub"><small>'+costText(r.cost)+' je Gruppe'+(mx<1?' · <b>nicht genug Vorräte</b>':'')+(n?' · in Ausbildung: '+n+'×':'')+'</small>'+(first?'<br><small>nächste Gruppe fertig in '+daysLeft(first)+' Tagen</small>'+PB(progOf(first)):'')+'</div></div>';
+    h+='<div class="rrow'+(mx<1?' off':'')+'"><div class="rtop"><span><b>'+r.n+' '+UNAME[t]+'</b> <small>⏳'+REC_DAYS[t]+'</small></span><span class="rval" id="rv_'+t+'"><b>'+n+'</b> × '+r.n+' = '+(n*r.n)+'</span></div><input type="range" class="rs" min="0" max="'+Math.max(mx,1)+'" step="1" value="'+n+'" data-t="'+t+'"'+(mx<1?' disabled':'')+'><div class="rsub"><span class="icrow">'+costText(r.cost)+'</span>'+(first?'<small>⏳ '+daysLeft(first)+'</small>'+PB(progOf(first)):'')+'</div></div>';
   }
   const gc=UK.reduce((s,u)=>s+K.gar[u],0);
-  if(gc)h+='<p><small>In der Burg warten '+gc+' Rekruten.</small></p>';
+  if(gc)h+='<div class="icrow">🏰 '+UK.filter(u2=>K.gar[u2]>0).map(u2=>'<span class="ic">'+UICON[u2]+'<b>'+K.gar[u2]+'</b></span>').join('')+'</div>';
   h+='<h2>Befestigungen</h2>';
   const mOk=buildAllowed(PL,'mauer',KINGS[PL].capital);
   const wl=G.wall[PL],wc=wallCost(PL);
-  h+='<div class="row"><div><b>Burgmauer</b> (Stufe '+wl+' von 2)<br><small>'+(wl>=2?'Voll ausgebaut':(mOk?'Stufe '+(wl+1)+': '+costText(wc)+' · '+WALL_DAYS[Math.min(1,wl)]+' Tage':'Stufe '+(wl+1)+' wird gebaut'))+' · Verteidigung der Burg ×'+(1.25+0.65*wl).toFixed(2).replace('.',',')+'</small></div>'+(wl>=2?'':'<button data-fm="1"'+(mOk&&canPay(PL,wc)?'':' disabled')+'>Stufe '+(wl+1)+' bauen</button>')+'</div>';
-  K.orders.build.forEach((b,i)=>{h+='<div class="row"><div style="flex:1">Im Bau: <b>'+buildLabel(b)+'</b><br><small>noch '+daysLeft(b)+' Tage</small>'+PB(progOf(b))+'</div><button data-bc="'+i+'">Abbrechen</button></div>'});
-  h+='<p><small>Feldschanzen und Wachtürme: eigenen Ort auf der Karte antippen.</small></p>';
+  h+='<div class="row"><div><b>🧱 '+wl+'/2</b> <small>🛡 ×'+(1.25+0.65*wl).toFixed(2).replace('.',',')+'</small>'+(wl>=2?'':'<br><span class="icrow">'+costText(wc)+'<small>⏳'+WALL_DAYS[Math.min(1,wl)]+'</small></span>')+'</div>'+(wl>=2?'':'<button data-fm="1"'+(mOk&&canPay(PL,wc)?'':' disabled')+'>Stufe '+(wl+1)+'</button>')+'</div>';
+  K.orders.build.forEach((b,i)=>{h+='<div class="row"><div style="flex:1"><b>'+buildLabel(b)+'</b><br><small>⏳ '+daysLeft(b)+'</small>'+PB(progOf(b))+'</div><button data-bc="'+i+'">Abbrechen</button></div>'});
+  h+='<p><small></small></p>';
   h+='<button class="big main" id="bClose">Fertig</button>';
   showOverlay(h);
   $('card').querySelectorAll('button[data-sel]').forEach(b=>b.onclick=()=>{G.sel=Number(b.dataset.sel);centerOn(selArmy());openMil()});
