@@ -2591,7 +2591,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.34 · 8.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.35 · 8.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2704,17 +2704,6 @@ function openMil(){
   h+='<div class="row"><div><b>'+FORT.mauer.name+'</b> (Stufe '+G.wall[PL]+')<br><small>'+costText(FORT.mauer.cost)+'</small></div><button data-fm="1"'+(mOk&&canPay(PL,FORT.mauer.cost)?'':' disabled')+'>Bauen</button></div>';
   K.orders.build.forEach((b,i)=>{h+='<div class="row"><div style="flex:1">Im Bau: <b>'+buildLabel(b)+'</b><br><small>noch '+daysLeft(b)+' Tage</small>'+PB(progOf(b))+'</div><button data-bc="'+i+'">Abbrechen</button></div>'});
   h+='<p><small>Feldschanzen und Wachtürme: eigenen Ort auf der Karte antippen.</small></p>';
-  h+='<h2>Das Land</h2>';
-  h+='<p><small>Erkundet: '+exploredPct()+' %.</small></p>';
-  const hints=dirHints();
-  if(hints.length)h+='<p><small>Am wenigsten erkundet: <b>'+hints.map(x=>x.n).join('</b>, <b>')+'</b>. Dorthin Späher schicken.</small></p>';
-  for(const k of KIDS){
-    if(k===PL)continue;
-    const cap=KINGS[k].capital,known=G.known[cap];
-    if(!G.K[k].alive){h+='<div class="row"><span>'+kn(k)+'</span><small>gefallen</small></div>';continue}
-    const sa=a&&pathFromTo(a.at!==null?a.at:a.to,cap);
-    h+='<div class="row"><span>'+kn(k)+'</span><span>'+(known?'Hauptburg bekannt'+(sa?' · ca. '+Math.ceil(sa.cost/speedOf(a)*TURN_S)+' s Marsch':''):'<small>noch nicht entdeckt</small>')+'</span>'+(known?'<button data-gt="'+cap+'">Zeigen</button>':'')+'</div>';
-  }
   h+='<button class="big main" id="bClose">Fertig</button>';
   showOverlay(h);
   $('card').querySelectorAll('button[data-sel]').forEach(b=>b.onclick=()=>{G.sel=Number(b.dataset.sel);centerOn(selArmy());openMil()});
