@@ -45,6 +45,16 @@ canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:b
 #log .dim{opacity:.7}
 #bottom{position:fixed;left:6px;right:6px;bottom:calc(env(safe-area-inset-bottom) + 64px);display:flex;flex-direction:column;gap:5px;pointer-events:none}
 #bottom>*{pointer-events:auto}
+
+#scroll{position:fixed;left:50%;top:38%;z-index:30;pointer-events:none;opacity:0;transform:translate(-50%,-50%) scale(.85);min-width:200px;text-align:center}
+#scroll.show{animation:scr 2.3s ease both}
+@keyframes scr{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}14%{opacity:1;transform:translate(-50%,-50%) scale(1)}78%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-56%) scale(.97)}}
+#scroll .rod{height:14px;border-radius:7px;background:linear-gradient(#7a5230,#4a2f18 60%,#6b4626);box-shadow:0 2px 4px rgba(0,0,0,.5);position:relative;margin:0 -8px}
+#scroll .rod:before,#scroll .rod:after{content:"";position:absolute;top:-1px;width:10px;height:16px;border-radius:5px;background:#3a2412}
+#scroll .rod:before{left:-6px}#scroll .rod:after{right:-6px}
+#scroll .par{background:radial-gradient(ellipse at 50% 40%,#f3e3b6,#e0c88a 70%,#cfb272);border-left:1px solid #a9884a;border-right:1px solid #a9884a;padding:10px 22px 11px;color:#4a2c12;font-family:Georgia,"Times New Roman",serif;box-shadow:0 5px 14px rgba(0,0,0,.45);margin:0 4px}
+#scroll .par small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#7a5a2a}
+#scroll .par b{display:block;font-size:24px;font-style:italic;line-height:1.15}
 #armybar{display:flex;gap:6px;overflow-x:auto;padding:2px 52px 2px 0}
 .chip{flex:0 0 auto;padding:5px 11px;border-radius:16px;border:1px solid #2e1f10;background:linear-gradient(#7d5a36,#5b3f24);color:#f6e7c1;font-size:12.5px;box-shadow:0 2px 5px rgba(0,0,0,.45);height:auto}
 .chip.sel{background:linear-gradient(#f0c24c,#c8901e);color:#2c1d08;font-weight:bold}
@@ -146,6 +156,7 @@ button:disabled{opacity:.45}
   <button id="bHelp" aria-label="Hilfe">?</button>
 </div>
 
+<div id="scroll"><div class="rod"></div><div class="par"><small>Es ist nun</small><b id="scrT"></b></div><div class="rod"></div></div>
 <div id="overlay"><div id="card"></div></div>
 
 <script>
@@ -2662,7 +2673,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.39 · 8.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.40 · 8.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2680,6 +2691,11 @@ function showGameOver(){
   const won=G.over.winner===PL;
   showOverlay('<h1>'+(won?'Sieg!':'Niederlage')+'</h1><p>'+G.over.reason+'</p><p>Spielzeit: '+fmtTime(G.time)+' · '+dateInfo(G.time).m+' Monate</p><button class="big main" id="bAgain">Neues Spiel</button>');
   $('bAgain').onclick=()=>{introOpen=false;hideOverlay();startGame()};
+}
+function showScroll(){
+  const di=dateInfo(G.time),s=$('scroll');
+  $('scrT').textContent=di.month+' '+di.year;
+  s.classList.remove('show');void s.offsetWidth;s.classList.add('show');
 }
 function showMonthReport(){
   const di=dateInfo(G.time);
@@ -3046,7 +3062,7 @@ function loop(ts){
   if(G&&G.over&&!overShown){overShown=true;clearSave();setTimeout(showGameOver,900)}
   if(G&&!G.over&&now-lastSave>20000){lastSave=now;saveGame()}
   if(G&&!G.over)overShown=false;
-  if(G&&G.council&&!open&&!G.over){G.council=false;showMonthReport()}
+  if(G&&G.council&&!G.over){G.council=false;showScroll()}
   if(now-hudT>220){hudT=now;updateHud()}
   render();
   requestAnimationFrame(loop);
