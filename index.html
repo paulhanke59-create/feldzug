@@ -2161,19 +2161,55 @@ function drawArmy(a,sx,sy,sel){
   drawBanner(sx-sz*2.4,sy-sz*1.2,side,side===PL?String(n):String(Math.round(n/10)*10),sel,false);
 }
 function drawCart(x,y,dx){
-  const s=clamp(view.s*1.7,1,1.9);
+  const s=clamp(view.s*0.95,0.55,0.85);
   ctx.save();ctx.translate(x,y);ctx.scale(s*(dx<0?-1:1),s);
-  const bob=Math.sin(ANIM_T*8)*0.6;
-  ctx.fillStyle='rgba(40,28,14,.3)';ctx.beginPath();ctx.ellipse(0,6,13,3,0,0,6.283);ctx.fill();
-  ctx.translate(0,bob);
-  ctx.fillStyle='#8a5a2b';ctx.strokeStyle='#4a2c12';ctx.lineWidth=1;
-  ctx.fillRect(-12,-4,15,8);ctx.strokeRect(-12,-4,15,8);
-  ctx.fillStyle='#e8dcc0';ctx.beginPath();ctx.moveTo(-12,-4);ctx.quadraticCurveTo(-4.5,-14,3,-4);ctx.closePath();ctx.fill();ctx.stroke();
-  for(const wx of [-8,0]){ctx.save();ctx.translate(wx,5);ctx.rotate(ANIM_T*6);ctx.fillStyle='#6b4423';ctx.beginPath();ctx.arc(0,0,3.4,0,6.283);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(-3.4,0);ctx.lineTo(3.4,0);ctx.moveTo(0,-3.4);ctx.lineTo(0,3.4);ctx.stroke();ctx.restore()}
-  ctx.fillStyle='#7a5a3a';ctx.beginPath();ctx.ellipse(10,0,5,3,0,0,6.283);ctx.fill();ctx.stroke();
-  ctx.beginPath();ctx.moveTo(13,-1);ctx.lineTo(16,-4);ctx.lineTo(17,-1);ctx.closePath();ctx.fill();ctx.stroke();
-  ctx.strokeStyle='#4a2c12';ctx.beginPath();ctx.moveTo(8,3);ctx.lineTo(8,6);ctx.moveTo(12,3);ctx.lineTo(12,6);ctx.stroke();
-  ctx.restore();
+  const t=ANIM_T*7,bob=Math.abs(Math.sin(t))*0.9,c=ctx;
+  c.lineJoin='round';c.lineCap='round';
+  c.fillStyle='rgba(40,28,14,.28)';c.beginPath();c.ellipse(2,8,18,3.2,0,0,6.283);c.fill();
+  /* Wagen (links), Esel (rechts, Blick nach rechts) */
+  c.save();c.translate(0,-bob*0.5);
+  /* Deichsel */
+  c.strokeStyle='#5A3E22';c.lineWidth=1.3;c.beginPath();c.moveTo(-1,3);c.lineTo(11,2);c.stroke();
+  /* Ladefläche */
+  c.fillStyle=lin(c,-17,-3,-1,5,'#9B6B3A','#6B4423');c.strokeStyle='#3A2412';c.lineWidth=.9;
+  c.beginPath();c.moveTo(-17,-2);c.lineTo(-1,-2);c.lineTo(-2,4);c.lineTo(-16,4);c.closePath();c.fill();c.stroke();
+  c.strokeStyle='rgba(40,25,10,.5)';c.lineWidth=.5;c.beginPath();c.moveTo(-16.5,1);c.lineTo(-1.5,1);c.stroke();
+  /* Ladung: Säcke + Leinenplane */
+  c.fillStyle='#CDB98A';c.strokeStyle='#6E5A32';c.lineWidth=.8;
+  c.beginPath();c.ellipse(-12,-4,4.2,3.2,0,0,6.283);c.fill();c.stroke();
+  c.beginPath();c.ellipse(-5.5,-4.6,4,3.4,0,0,6.283);c.fill();c.stroke();
+  c.fillStyle='#E9E0C6';c.beginPath();c.moveTo(-15,-3);c.quadraticCurveTo(-9,-12,-3,-3);c.closePath();c.fill();c.stroke();
+  c.strokeStyle='rgba(120,100,60,.45)';c.beginPath();c.moveTo(-11,-3);c.quadraticCurveTo(-10,-8,-9,-9.5);c.moveTo(-7,-3);c.quadraticCurveTo(-8,-8,-9,-9.5);c.stroke();
+  /* Rad mit Speichen */
+  c.save();c.translate(-9,5);c.rotate(ANIM_T*3.2);
+  c.strokeStyle='#3A2412';c.lineWidth=1.3;c.fillStyle='#7A5230';c.beginPath();c.arc(0,0,4.2,0,6.283);c.fill();c.stroke();
+  c.lineWidth=.8;c.fillStyle='#D8B98A';c.beginPath();c.arc(0,0,2.6,0,6.283);c.fill();
+  c.beginPath();for(let i=0;i<4;i++){c.moveTo(0,0);c.lineTo(Math.cos(i*0.785)*3.6,Math.sin(i*0.785)*3.6);c.moveTo(0,0);c.lineTo(-Math.cos(i*0.785)*3.6,-Math.sin(i*0.785)*3.6)}c.stroke();
+  c.restore();
+  c.restore();
+  /* Esel */
+  const ex=14;
+  const leg=(ox,ph)=>{const a=Math.sin(t+ph)*2.2;c.strokeStyle='#5E5648';c.lineWidth=1.5;c.beginPath();c.moveTo(ex+ox,3);c.lineTo(ex+ox+a,8-Math.max(0,Math.cos(t+ph))*1.2);c.stroke();c.fillStyle='#2E2A24';c.beginPath();c.arc(ex+ox+a,8.2-Math.max(0,Math.cos(t+ph))*1.2,.9,0,6.283);c.fill()};
+  leg(-4,0);leg(3,Math.PI);
+  c.save();c.translate(0,-bob);
+  c.fillStyle=lin(c,ex-6,-4,ex+6,5,'#9B917F','#6F6757');c.strokeStyle='#3A352C';c.lineWidth=.9;
+  c.beginPath();c.ellipse(ex,0.5,6.4,3.8,0,0,6.283);c.fill();c.stroke();
+  /* heller Bauch */
+  c.fillStyle='rgba(225,218,200,.55)';c.beginPath();c.ellipse(ex,2.6,5,1.5,0,0,6.283);c.fill();
+  /* Hals und Kopf */
+  c.fillStyle='#8A8070';c.strokeStyle='#3A352C';
+  c.beginPath();c.moveTo(ex+4,-2);c.lineTo(ex+8,-6.5);c.lineTo(ex+10.5,-5.5);c.lineTo(ex+7.5,0);c.closePath();c.fill();c.stroke();
+  c.beginPath();c.ellipse(ex+11.2,-5.2,3.4,2.2,0.35,0,6.283);c.fill();c.stroke();
+  c.fillStyle='#D8CFBA';c.beginPath();c.ellipse(ex+13.2,-4.3,1.5,1.1,0.35,0,6.283);c.fill();
+  c.fillStyle='#8A8070';c.beginPath();c.moveTo(ex+8.5,-6.2);c.lineTo(ex+8,-11);c.lineTo(ex+10.5,-7);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#1E1A14';c.beginPath();c.arc(ex+11,-5.8,.6,0,6.283);c.fill();
+  /* Mähne, Schwanz, Sattelpack mit Geschirr */
+  c.strokeStyle='#4A4338';c.lineWidth=1.1;c.beginPath();c.moveTo(ex+4.5,-3);c.lineTo(ex+8,-7);c.stroke();
+  c.beginPath();c.moveTo(ex-6.2,-1);c.quadraticCurveTo(ex-9,1,ex-8.5,5);c.stroke();
+  c.fillStyle='#A8483A';c.strokeStyle='#4A1F18';c.lineWidth=.7;c.fillRect(ex-3,-4,6,3);c.strokeRect(ex-3,-4,6,3);
+  c.strokeStyle='#4A3220';c.lineWidth=.8;c.beginPath();c.moveTo(ex-6,0);c.lineTo(ex-1,-0.5);c.stroke();
+  c.restore();
+  c.restore();
 }
 
 /* ---------- Münzen, Brot, Erz ---------- */
@@ -2628,7 +2664,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.37 · 8.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.38 · 8.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
