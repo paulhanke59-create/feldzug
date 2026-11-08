@@ -1629,6 +1629,104 @@ function drawWalls(n,k){
   }
   c.restore();
 }
+
+/* ---------- verbesserte Gebäude ---------- */
+function lin(c,x0,y0,x1,y1,a,b){const g=c.createLinearGradient(x0,y0,x1,y1);g.addColorStop(0,a);g.addColorStop(1,b);return g}
+function stoneBlock(c,x,y,w,h,base,dark,light){
+  c.fillStyle=lin(c,x,y,x+w,y,light,dark);c.fillRect(x,y,w,h);
+  c.strokeStyle='rgba(40,30,20,.35)';c.lineWidth=.6;
+  for(let yy=y+4;yy<y+h-1;yy+=4.5){c.beginPath();c.moveTo(x,yy);c.lineTo(x+w,yy);c.stroke();
+    const o=((yy-y)/4.5|0)%2?2.5:0;for(let xx=x+3+o;xx<x+w-1;xx+=5){c.beginPath();c.moveTo(xx,yy);c.lineTo(xx,yy+4.5);c.stroke()}}
+  c.strokeStyle='#3D2E22';c.lineWidth=1;c.strokeRect(x,y,w,h);
+}
+function crenels(c,x,y,w,fill){
+  c.fillStyle=fill;c.strokeStyle='#3D2E22';c.lineWidth=.9;
+  const n=Math.max(2,Math.round(w/5.5)),s=w/n;
+  for(let i=0;i<n;i+=2){c.fillRect(x+i*s,y-4,s,4.2);c.strokeRect(x+i*s,y-4,s,4.2)}
+}
+function house(c,x,y,w,h,wall,roof,glow){
+  c.fillStyle=lin(c,x,y,x+w,y,wall[0],wall[1]);c.fillRect(x,y,w,h);
+  c.strokeStyle='rgba(60,40,25,.55)';c.lineWidth=.8;
+  c.beginPath();c.moveTo(x+w*0.5,y);c.lineTo(x+w*0.5,y+h);c.moveTo(x,y+h*0.45);c.lineTo(x+w,y+h*0.45);c.stroke();
+  c.strokeStyle='#3F2F20';c.lineWidth=1;c.strokeRect(x,y,w,h);
+  const rh=w*0.62;
+  c.fillStyle=lin(c,x,y-rh,x+w,y,roof[0],roof[1]);
+  c.beginPath();c.moveTo(x-2.5,y+0.5);c.lineTo(x+w*0.5,y-rh);c.lineTo(x+w+2.5,y+0.5);c.closePath();c.fill();c.stroke();
+  c.strokeStyle='rgba(255,255,255,.22)';c.beginPath();c.moveTo(x+w*0.5,y-rh+1);c.lineTo(x-1,y);c.stroke();
+  const dw=Math.max(3,w*0.22);
+  c.fillStyle='#35271B';c.fillRect(x+w*0.18,y+h-dw*1.5,dw,dw*1.5);
+  c.fillStyle=glow?'#F5D77A':'#5D6A70';c.fillRect(x+w*0.58,y+h*0.25,dw*0.9,dw*0.9);
+  c.strokeStyle='#3F2F20';c.lineWidth=.6;c.strokeRect(x+w*0.58,y+h*0.25,dw*0.9,dw*0.9);
+}
+function tuft(c,x,y,s){c.strokeStyle='#4F7A33';c.lineWidth=1;c.beginPath();for(let i=-1;i<=1;i++){c.moveTo(x+i*s*0.5,y);c.lineTo(x+i*s*0.9,y-s*1.6)}c.stroke()}
+function smallTree(c,x,y,s){
+  c.fillStyle='#5B3F26';c.fillRect(x-s*0.15,y-s*0.2,s*0.3,s*0.9);
+  c.fillStyle='#3E6B2E';c.beginPath();c.arc(x,y-s*0.7,s*0.7,0,6.283);c.fill();
+  c.fillStyle='#5F9444';c.beginPath();c.arc(x-s*0.2,y-s*0.9,s*0.4,0,6.283);c.fill();
+}
+function drawVillageArt(c,col,dk){
+  c.fillStyle='rgba(50,35,20,.25)';c.beginPath();c.ellipse(0,13,27,7,0,0,6.283);c.fill();
+  c.fillStyle='rgba(120,100,60,.35)';c.beginPath();c.ellipse(0,11,23,5.5,0,0,6.283);c.fill();
+  tuft(c,-24,12,3);tuft(c,22,13,3);
+  smallTree(c,-24,9,7);smallTree(c,25,6,6);
+  const stone=['#C9B38C','#9C8764'],tim=['#B09068','#7F6544'];
+  house(c,-19,-1,15,11,tim,['#C0583F','#8A3A28'],!!col);
+  house(c,6,0,13,10,stone,['#A64A33','#6F2F20'],!!col);
+  house(c,-8,6,11,8,tim,['#D1A24F','#9A7430'],false);
+  /* Brunnen */
+  c.fillStyle='#8E8676';c.strokeStyle='#3D2E22';c.lineWidth=.8;c.beginPath();c.ellipse(15,14,4,2,0,0,6.283);c.fill();c.stroke();
+  /* Schornstein */
+  c.fillStyle='#7D6A58';c.fillRect(-9,-12,3,6);c.strokeRect(-9,-12,3,6);
+  if(col){puffs(c,-7.5,-12);flag(c,17,-4,col,dk,19)}
+}
+function drawCastleArt(c,col,dk,roofC){
+  const line='#3D2E22',lt='#A59A86',md='#857A66',dkS='#5C5244';
+  c.fillStyle='rgba(50,35,20,.3)';c.beginPath();c.ellipse(2,18,33,7,0,0,6.283);c.fill();
+  /* Vorhof */
+  c.fillStyle='rgba(120,100,60,.4)';c.beginPath();c.ellipse(0,16,28,5,0,0,6.283);c.fill();
+  /* Ringmauer */
+  stoneBlock(c,-26,-1,52,18,md,dkS,lt);crenels(c,-26,-1,52,md);
+  /* Hauptturm / Bergfried */
+  stoneBlock(c,-9,-26,18,30,md,dkS,lt);crenels(c,-9,-26,18,md);
+  c.fillStyle=roofC;c.strokeStyle=line;c.lineWidth=1;
+  c.beginPath();c.moveTo(-10.5,-26);c.lineTo(0,-38);c.lineTo(10.5,-26);c.closePath();c.fill();c.stroke();
+  c.fillStyle='rgba(255,255,255,.2)';c.beginPath();c.moveTo(0,-37);c.lineTo(-9.5,-26.5);c.lineTo(-4,-26.5);c.closePath();c.fill();
+  /* Eckturme */
+  for(const sx of [-33,20]){
+    stoneBlock(c,sx,-14,13,31,md,dkS,lt);crenels(c,sx,-14,13,md);
+    c.fillStyle=roofC;c.strokeStyle=line;c.beginPath();c.moveTo(sx-1.5,-14);c.lineTo(sx+6.5,-25);c.lineTo(sx+14.5,-14);c.closePath();c.fill();c.stroke();
+    c.fillStyle='#2A2018';c.fillRect(sx+5,-8,3,6);
+  }
+  /* Fenster */
+  c.fillStyle='#F2D27A';c.fillRect(-2,-20,4,6);c.strokeStyle=line;c.lineWidth=.7;c.strokeRect(-2,-20,4,6);
+  /* Tor */
+  c.fillStyle='#2E2218';c.beginPath();c.moveTo(-6,17);c.lineTo(-6,8);c.arc(0,8,6,Math.PI,0);c.lineTo(6,17);c.closePath();c.fill();
+  c.strokeStyle='#7A6A55';c.lineWidth=.8;for(let i=-4;i<=4;i+=2){c.beginPath();c.moveTo(i,4);c.lineTo(i,17);c.stroke()}
+  c.beginPath();c.moveTo(-5,10);c.lineTo(5,10);c.moveTo(-5,13.5);c.lineTo(5,13.5);c.stroke();
+  if(col){flag(c,0,-38,col,dk,18);flag(c,-26.5,-25,col,dk,10);flag(c,26.5,-25,col,dk,10)}
+}
+function drawRuinArt(c){
+  const line='#4F473A';
+  c.fillStyle='rgba(50,35,20,.25)';c.beginPath();c.ellipse(0,13,26,6,0,0,6.283);c.fill();
+  c.fillStyle='rgba(90,120,60,.45)';c.beginPath();c.ellipse(0,12,22,4.5,0,0,6.283);c.fill();
+  /* hohe Mauer mit Bogen */
+  c.fillStyle=lin(c,-12,0,8,0,'#B5AB97','#847A68');c.strokeStyle=line;c.lineWidth=1;
+  c.beginPath();c.moveTo(-13,12);c.lineTo(-13,-12);c.lineTo(-9,-15);c.lineTo(-6,-10);c.lineTo(-2,-17);c.lineTo(2,-8);c.lineTo(5,-11);c.lineTo(8,12);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#2E2A22';c.beginPath();c.moveTo(-6,12);c.lineTo(-6,2);c.arc(-1,2,5,Math.PI,0);c.lineTo(4,12);c.closePath();c.fill();
+  c.strokeStyle='rgba(60,50,40,.4)';c.lineWidth=.6;for(let y=-8;y<12;y+=4.5){c.beginPath();c.moveTo(-13,y);c.lineTo(8,y);c.stroke()}
+  /* niedrige Mauer rechts */
+  c.fillStyle=lin(c,10,0,24,0,'#A99F8B','#7C7261');c.strokeStyle=line;c.lineWidth=1;
+  c.beginPath();c.moveTo(10,12);c.lineTo(10,-1);c.lineTo(15,2);c.lineTo(18,-5);c.lineTo(24,0);c.lineTo(24,12);c.closePath();c.fill();c.stroke();
+  /* Mauerstumpf links */
+  c.beginPath();c.moveTo(-25,12);c.lineTo(-25,3);c.lineTo(-20,5);c.lineTo(-17,12);c.closePath();c.fillStyle='#968C79';c.fill();c.stroke();
+  /* Steinbrocken */
+  c.fillStyle='#9A9080';for(const [x,y,s] of [[-1,14,3],[13,14,2.5],[-20,15,2],[5,15.5,2]]){c.beginPath();c.moveTo(x-s,y);c.lineTo(x-s*0.4,y-s);c.lineTo(x+s,y-s*0.3);c.lineTo(x+s*0.8,y+s*0.4);c.closePath();c.fill();c.stroke()}
+  /* Efeu & Gras */
+  c.strokeStyle='#4A7A35';c.lineWidth=1.6;c.beginPath();c.moveTo(-12,-6);c.quadraticCurveTo(-9,2,-12,10);c.moveTo(7,-9);c.quadraticCurveTo(10,0,8,9);c.stroke();
+  c.fillStyle='#5F9444';for(const [x,y] of [[-12,-4],[-10,3],[8,-6],[9,4],[-13,8]]){c.beginPath();c.arc(x,y,1.7,0,6.283);c.fill()}
+  tuft(c,-22,13,3);tuft(c,18,14,3);tuft(c,2,15,3);
+  smallTree(c,-28,6,5);
+}
 function drawNodeSymbol(n,k){
   const c=ctx;c.save();c.translate(n.x,n.y);c.scale(k,k);
   const kn=G.known[n.id];
@@ -1640,19 +1738,9 @@ function drawNodeSymbol(n,k){
     c.fillStyle=plundered?'#3E352B':'#B3503A';c.beginPath();c.moveTo(x-2,y);c.lineTo(x+w/2,y-w*0.6);c.lineTo(x+w+2,y);c.closePath();c.fill();c.stroke()};
   const shadow=(rx)=>{c.fillStyle='rgba(50,35,20,.2)';c.beginPath();c.ellipse(0,10,rx,5,0,0,6.283);c.fill()};
   if(n.type==='castle'){
-    const body='#6B5A45',roof=col||'#8B7355',line='#3D2E22';
-    c.fillStyle='rgba(50,35,20,.25)';c.beginPath();c.ellipse(2,17,26,6,0,0,6.283);c.fill();
-    c.fillStyle=body;c.strokeStyle=line;c.lineWidth=1.2;
-    c.fillRect(-18,-6,36,22);c.strokeRect(-18,-6,36,22);
-    for(const sx of [-22,13]){c.fillRect(sx,-16,9,32);c.strokeRect(sx,-16,9,32);
-      c.fillStyle=roof;c.beginPath();c.moveTo(sx-1,-16);c.lineTo(sx+4.5,-26);c.lineTo(sx+10,-16);c.closePath();c.fill();c.stroke();c.fillStyle=body}
-    c.fillStyle=line;c.fillRect(-4,-11,8,8);
-    c.fillStyle='#3A2E22';c.beginPath();c.moveTo(-4,16);c.lineTo(-4,6);c.arc(0,6,4,Math.PI,0);c.lineTo(4,16);c.closePath();c.fill();
-    for(let i=-16;i<=10;i+=9){c.fillStyle=body;c.fillRect(i,-10,5,4);c.strokeRect(i,-10,5,4)}
-    if(col)flag(c,0,-6,col,dk,24);
+    drawCastleArt(c,col,dk,col||'#8B7355');
   }else if(n.type==='village'){
-    shadow(20);hut(-17,-2,14);hut(2,2,12);hut(-6,8,10);if(col)puffs(c,-12,-6);
-    if(plundered)smoke(c);else if(col)flag(c,14,-6,col,dk,18);
+    drawVillageArt(c,col,dk);
   }else if(n.type==='mill'){
     shadow(20);hut(-12,-4,16);
     c.strokeStyle='#4A3D2E';c.lineWidth=1.4;c.fillStyle='rgba(180,150,100,.5)';
@@ -1712,10 +1800,7 @@ function drawNodeSymbol(n,k){
     c.fillStyle='#6B5A45';c.beginPath();c.moveTo(-9,-20);c.lineTo(0,-30);c.lineTo(9,-20);c.closePath();c.fill();c.stroke();
     if(col)flag(c,0,-30,col,dk,14);
   }else if(n.type==='ruin'){
-    c.fillStyle='#8C8270';c.strokeStyle='#5E5646';c.lineWidth=1;
-    c.beginPath();c.moveTo(-6,10);c.lineTo(-6,-14);c.lineTo(-2,-10);c.lineTo(2,-16);c.lineTo(6,10);c.closePath();c.fill();c.stroke();
-    c.beginPath();c.moveTo(8,10);c.lineTo(8,-4);c.lineTo(14,-1);c.lineTo(15,10);c.closePath();c.fill();c.stroke();
-    c.beginPath();c.moveTo(-16,10);c.lineTo(-16,0);c.lineTo(-10,3);c.lineTo(-9,10);c.closePath();c.fill();c.stroke();
+    drawRuinArt(c);
   }else if(n.type==='cross'){
     c.fillStyle='rgba(50,35,20,.2)';c.beginPath();c.ellipse(0,9,9,3,0,0,6.283);c.fill();
     c.strokeStyle='#5A4A38';c.lineWidth=3;c.beginPath();c.moveTo(0,-14);c.lineTo(0,9);c.moveTo(-7,-8);c.lineTo(7,-8);c.stroke();
@@ -2341,7 +2426,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.29 · 7.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.30 · 8.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
