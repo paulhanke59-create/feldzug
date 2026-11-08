@@ -2025,22 +2025,21 @@ function strokeEdge(e){
   ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.quadraticCurveTo(e.cp.x,e.cp.y,B.x,B.y);ctx.stroke();
 }
 function drawEdgeStyle(e){
+  ctx.setLineDash([]);ctx.lineDashOffset=0;
   if(e.type==='road'){
-    /* Steinweg: Randsteine, heller gepflasterter Streifen, Pflastersteine */
-    ctx.setLineDash([]);
-    ctx.strokeStyle='rgba(50,38,24,.55)';ctx.lineWidth=11;strokeEdge(e);
-    ctx.strokeStyle='#9A907E';ctx.lineWidth=9;strokeEdge(e);
-    ctx.strokeStyle='#C4BBA6';ctx.lineWidth=6.4;strokeEdge(e);
-    ctx.strokeStyle='rgba(95,85,68,.75)';ctx.lineWidth=5.6;ctx.setLineDash([2.4,3.6]);strokeEdge(e);
-    ctx.strokeStyle='rgba(235,228,210,.8)';ctx.lineWidth=2.4;ctx.setLineDash([3,5]);ctx.lineDashOffset=2;strokeEdge(e);
+    /* gepflasterter Weg: schmal, Randsteine, Pflastermuster */
+    ctx.strokeStyle='rgba(50,38,24,.6)';ctx.lineWidth=6.6;strokeEdge(e);
+    ctx.strokeStyle='#B9AF9A';ctx.lineWidth=5.2;strokeEdge(e);
+    ctx.strokeStyle='rgba(88,78,62,.8)';ctx.lineWidth=3.8;ctx.setLineDash([1.6,1.4]);strokeEdge(e);
+    ctx.strokeStyle='rgba(232,225,206,.85)';ctx.lineWidth=2;ctx.setLineDash([1.6,1.4]);ctx.lineDashOffset=1.5;strokeEdge(e);
     ctx.lineDashOffset=0;
   }else{
-    /* Trampelpfad: schmaler, unregelmäßiger Erdstreifen */
-    const st={plain:['#A28A62',1.7,[3,5]],forest:['#6B7A4C',1.8,[2,6]],hills:['#9A8556',1.8,[5,5]],swamp:['#6B7248',2,[2,5]],mountain:['#7E6F55',1.9,[6,5]]}[e.type];
-    ctx.setLineDash([]);
-    ctx.strokeStyle='rgba(110,86,56,.13)';ctx.lineWidth=4;strokeEdge(e);
-    ctx.strokeStyle=st[0];ctx.lineWidth=st[1];ctx.setLineDash(st[2]);strokeEdge(e);
+    /* Trampelpfad: hauchdünn, unregelmäßig, mit Lücken */
+    const col={plain:'rgba(120,92,56,.8)',forest:'rgba(88,84,50,.8)',hills:'rgba(125,98,58,.8)',swamp:'rgba(88,86,52,.8)',mountain:'rgba(104,88,66,.8)'}[e.type]||'rgba(120,92,56,.8)';
+    ctx.strokeStyle='rgba(110,86,56,.10)';ctx.lineWidth=2.2;strokeEdge(e);
+    ctx.strokeStyle=col;ctx.lineWidth=0.9;ctx.setLineDash([7,1.5,3,2,1.5,2.5,5,2]);strokeEdge(e);
   }
+  ctx.setLineDash([]);
 }
 function drawEdges(){
   ctx.lineCap='round';ctx.lineJoin='round';
@@ -2629,7 +2628,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.36 · 8.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.37 · 8.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
