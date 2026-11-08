@@ -66,6 +66,8 @@ input.rs::-moz-range-track{height:10px;border-radius:5px;background:#6a4a2a;bord
 input.rs::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;margin-top:-10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f5d98a,#c8932f 70%,#8a6018);border:2px solid #4a2f10;box-shadow:0 2px 4px rgba(0,0,0,.5)}
 input.rs::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#c8932f;border:2px solid #4a2f10}
 input.rs:disabled{opacity:.4}
+.rrow.off{filter:grayscale(1);opacity:.55}
+.rrow.off input.rs{pointer-events:none}
 
 .modes{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 2px}
 .modes button{padding:9px 6px;border-radius:10px;border:2px solid #8a6a38;background:linear-gradient(#f4e6bd,#e2cd96);color:#3a2412;font:600 15px Georgia,serif}
@@ -2738,7 +2740,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.43 · 8.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.44 · 8.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2855,7 +2857,7 @@ function openMil(){
     const qi=K.orders.rq.filter(x=>x.t===t),first=qi[0];
     let aff=99;for(const k2 in r.cost)if(r.cost[k2]>0)aff=Math.min(aff,Math.floor((K.stock[k2]||0)/r.cost[k2]));
     const mx=Math.min(20,n+aff);
-    h+='<div class="rrow"><div class="rtop"><span><b>'+r.n+' '+UNAME[t]+'</b> <small>('+REC_DAYS[t]+' Tage je Gruppe)</small></span><span class="rval" id="rv_'+t+'"><b>'+n+'</b> × '+r.n+' = '+(n*r.n)+'</span></div><input type="range" class="rs" min="0" max="'+Math.max(mx,1)+'" step="1" value="'+n+'" data-t="'+t+'"'+(mx<1?' disabled':'')+'><div class="rsub"><small>'+costText(r.cost)+' je Gruppe'+(n?' · in Ausbildung: '+n+'×':'')+'</small>'+(first?'<br><small>nächste Gruppe fertig in '+daysLeft(first)+' Tagen</small>'+PB(progOf(first)):'')+'</div></div>';
+    h+='<div class="rrow'+(mx<1?' off':'')+'"><div class="rtop"><span><b>'+r.n+' '+UNAME[t]+'</b> <small>('+REC_DAYS[t]+' Tage je Gruppe)</small></span><span class="rval" id="rv_'+t+'"><b>'+n+'</b> × '+r.n+' = '+(n*r.n)+'</span></div><input type="range" class="rs" min="0" max="'+Math.max(mx,1)+'" step="1" value="'+n+'" data-t="'+t+'"'+(mx<1?' disabled':'')+'><div class="rsub"><small>'+costText(r.cost)+' je Gruppe'+(mx<1?' · <b>nicht genug Vorräte</b>':'')+(n?' · in Ausbildung: '+n+'×':'')+'</small>'+(first?'<br><small>nächste Gruppe fertig in '+daysLeft(first)+' Tagen</small>'+PB(progOf(first)):'')+'</div></div>';
   }
   const gc=UK.reduce((s,u)=>s+K.gar[u],0);
   if(gc)h+='<p><small>In der Burg warten '+gc+' Rekruten.</small></p>';
