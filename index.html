@@ -55,6 +55,17 @@ canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:b
 #scroll .par{background:radial-gradient(ellipse at 50% 40%,#f3e3b6,#e0c88a 70%,#cfb272);border-left:1px solid #a9884a;border-right:1px solid #a9884a;padding:10px 22px 11px;color:#4a2c12;font-family:Georgia,"Times New Roman",serif;box-shadow:0 5px 14px rgba(0,0,0,.45);margin:0 4px}
 #scroll .par small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#7a5a2a}
 #scroll .par b{display:block;font-size:24px;font-style:italic;line-height:1.15}
+
+.rrow{padding:7px 0 8px;border-bottom:1px solid rgba(90,60,30,.25)}
+.rrow .rtop{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.rrow .rval{white-space:nowrap;font-size:15px}
+.rrow .rsub{margin-top:2px}
+input.rs{-webkit-appearance:none;appearance:none;width:100%;height:30px;background:transparent;margin:4px 0 0;touch-action:pan-y}
+input.rs::-webkit-slider-runnable-track{height:10px;border-radius:5px;background:linear-gradient(#5a3e22,#7a5632);border:1px solid #3a2412;box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
+input.rs::-moz-range-track{height:10px;border-radius:5px;background:#6a4a2a;border:1px solid #3a2412}
+input.rs::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;margin-top:-10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f5d98a,#c8932f 70%,#8a6018);border:2px solid #4a2f10;box-shadow:0 2px 4px rgba(0,0,0,.5)}
+input.rs::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#c8932f;border:2px solid #4a2f10}
+input.rs:disabled{opacity:.4}
 #armybar{display:flex;gap:6px;overflow-x:auto;padding:2px 52px 2px 0}
 .chip{flex:0 0 auto;padding:5px 11px;border-radius:16px;border:1px solid #2e1f10;background:linear-gradient(#7d5a36,#5b3f24);color:#f6e7c1;font-size:12.5px;box-shadow:0 2px 5px rgba(0,0,0,.45);height:auto}
 .chip.sel{background:linear-gradient(#f0c24c,#c8901e);color:#2c1d08;font-weight:bold}
@@ -2676,7 +2687,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.41 · 8.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.42 · 8.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2785,7 +2796,9 @@ function openMil(){
   for(const t of UK){
     const r=RECR[t],n=K.orders.rec[t];
     const qi=K.orders.rq.filter(x=>x.t===t),first=qi[0];
-    h+='<div class="row"><div style="flex:1"><b>'+r.n+' '+UNAME[t]+'</b> <small>('+REC_DAYS[t]+' Tage)</small><br><small>'+costText(r.cost)+(n?' · in Ausbildung: '+n+'×':'')+'</small>'+(first?'<br><small>nächste Gruppe fertig in '+daysLeft(first)+' Tagen</small>'+PB(progOf(first)):'')+'</div><span class="seg"><button data-rm="'+t+'"'+(n?'':' disabled')+'>−</button><button data-rp="'+t+'"'+(canPay(PL,r.cost)?'':' disabled')+'>+</button></span></div>';
+    let aff=99;for(const k2 in r.cost)if(r.cost[k2]>0)aff=Math.min(aff,Math.floor((K.stock[k2]||0)/r.cost[k2]));
+    const mx=Math.min(20,n+aff);
+    h+='<div class="rrow"><div class="rtop"><span><b>'+r.n+' '+UNAME[t]+'</b> <small>('+REC_DAYS[t]+' Tage je Gruppe)</small></span><span class="rval" id="rv_'+t+'"><b>'+n+'</b> × '+r.n+' = '+(n*r.n)+'</span></div><input type="range" class="rs" min="0" max="'+Math.max(mx,1)+'" step="1" value="'+n+'" data-t="'+t+'"'+(mx<1?' disabled':'')+'><div class="rsub"><small>'+costText(r.cost)+' je Gruppe'+(n?' · in Ausbildung: '+n+'×':'')+'</small>'+(first?'<br><small>nächste Gruppe fertig in '+daysLeft(first)+' Tagen</small>'+PB(progOf(first)):'')+'</div></div>';
   }
   const gc=UK.reduce((s,u)=>s+K.gar[u],0);
   if(gc)h+='<p><small>In der Burg warten '+gc+' Rekruten.</small></p>';
@@ -2799,8 +2812,16 @@ function openMil(){
   showOverlay(h);
   $('card').querySelectorAll('button[data-sel]').forEach(b=>b.onclick=()=>{G.sel=Number(b.dataset.sel);centerOn(selArmy());openMil()});
   $('card').querySelectorAll('button[data-a]').forEach(b=>b.onclick=()=>{$('card')._acts[Number(b.dataset.a)].fn();openMil()});
-  $('card').querySelectorAll('button[data-rp]').forEach(b=>b.onclick=()=>{orderRecruit(PL,b.dataset.rp);openMil()});
-  $('card').querySelectorAll('button[data-rm]').forEach(b=>b.onclick=()=>{cancelRecruit(PL,b.dataset.rm);openMil()});
+  $('card').querySelectorAll('input.rs').forEach(s=>{
+    const t=s.dataset.t;
+    s.oninput=()=>{const v=$('rv_'+t);if(v)v.innerHTML='<b>'+s.value+'</b> × '+RECR[t].n+' = '+(Number(s.value)*RECR[t].n)};
+    s.onchange=()=>{
+      const tg=Number(s.value);
+      while(G.K[PL].orders.rec[t]<tg&&orderRecruit(PL,t));
+      while(G.K[PL].orders.rec[t]>tg)cancelRecruit(PL,t);
+      openMil();
+    };
+  });
   $('card').querySelectorAll('button[data-fm]').forEach(b=>b.onclick=()=>{orderBuild(PL,'mauer',KINGS[PL].capital);openMil()});
   $('card').querySelectorAll('button[data-bc]').forEach(b=>b.onclick=()=>{cancelBuild(PL,Number(b.dataset.bc));openMil()});
   $('card').querySelectorAll('button[data-gt]').forEach(b=>b.onclick=()=>{G.pick=b.dataset.gt;centerNode(b.dataset.gt);closeSheet()});
