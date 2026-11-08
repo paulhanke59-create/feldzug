@@ -38,7 +38,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:b
 .bar:nth-child(3) i{background:linear-gradient(#9fb2c4,#66798c)}
 .bar span{position:relative;padding-left:5px;white-space:nowrap;text-shadow:0 1px 1px rgba(0,0,0,.7)}
 .bar.low i{background:#d3402a}
-#log{left:6px;top:calc(env(safe-area-inset-top) + 152px);max-width:calc(100% - 66px);padding:4px 9px;font-size:12px;line-height:1.3;transition:opacity .4s}
+#log{position:static;margin-top:5px;padding:3px 8px;font-size:12px;line-height:1.3;min-height:17px;background:rgba(0,0,0,.28);border:1px solid rgba(214,176,98,.4);border-radius:9px;color:#f6e8c6;overflow:hidden}
 #log div{margin:1px 0}
 #log .battle{color:var(--bad);font-weight:bold}
 #log .good{color:var(--ok)}
@@ -129,8 +129,8 @@ button:disabled{opacity:.45}
     <div class="bar" id="bFood"><i></i><span></span></div>
     <div class="bar" id="bArrows"><i></i><span></span></div>
   </div>
+  <div id="log"></div>
 </div>
-<div id="log" class="panel"></div>
 <div id="zoom" class="panel">
   <button class="wood" id="zIn" aria-label="Hineinzoomen">+</button>
   <button class="wood" id="zOut" aria-label="Herauszoomen">−</button>
@@ -2535,8 +2535,6 @@ function drawMini(){
   mctx.strokeStyle='rgba(255,255,255,.95)';mctx.lineWidth=1.6;
   mctx.strokeRect((-view.x/view.s)*f,(-view.y/view.s)*f,(cw/view.s)*f,(ch/view.s)*f);
   $('miniLbl').textContent='Insel: '+Math.round(landShare(PL)*100)+' % dein';
-  const hb=$('hud').getBoundingClientRect().bottom;
-  $('log').style.top=(hb+6)+'px';
 }
 mini.addEventListener('click',e=>{
   const r=mini.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;
@@ -2629,10 +2627,10 @@ function updateHud(){
   setBar('bTroops',troops(a),Math.max(a.startTroops,troops(a)),'Mann '+troops(a),troops(a)<a.startTroops*0.5);
   setBar('bFood',a.food,foodCap(a),'Brot '+f0(a.food),a.food<foodCap(a)*0.25);
   setBar('bArrows',a.arrows,Math.max(1,arrowCap(a)),'Munition '+f0(a.arrows),a.arrows<=0&&(a.units.bow>0||a.units.can>0));
-  const msgs=G.log.filter(l=>G.time-l.t<14).slice(-3);
   const L=$('log');
-  setHTML(L,msgs.map(l=>'<div class="'+l.cls+'">'+l.text+'</div>').join(''));
-  L.style.display=msgs.length?'block':'none';
+  const rec=G.log.filter(l=>G.time-l.t<14).slice(-2);
+  const shown=rec.length?rec:G.log.slice(-1).map(l=>({...l,cls:'dim'}));
+  setHTML(L,shown.length?shown.map(l=>'<div class="'+l.cls+'">'+l.text+'</div>').join(''):'<div class="dim">Noch keine Ereignisse.</div>');
   const ab=$('armybar');
   const list=sideArmies(PL);
   setHTML(ab,list.map(x=>'<button class="chip'+(x===a?' sel':'')+'" data-id="'+x.id+'">'+x.name+' · '+troops(x)+'</button>').join(''));
@@ -2664,7 +2662,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.38 · 8.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.39 · 8.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
