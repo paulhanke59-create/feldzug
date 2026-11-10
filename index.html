@@ -80,6 +80,7 @@ input.rs:disabled{opacity:.4}
 .selrow{background:linear-gradient(90deg,rgba(255,206,80,.45),rgba(255,206,80,.12));border-left:5px solid #c8901e;border-radius:8px;padding-left:8px;margin-left:-4px}
 .gew{font-weight:700;color:#7a4e08;white-space:nowrap;padding:6px 10px;border-radius:10px;background:rgba(255,206,80,.55);border:1px solid #c8901e}
 .chip.sel{outline:2px solid #fff3c4;box-shadow:0 0 0 3px #c8901e,0 2px 8px rgba(0,0,0,.5)}
+.armyhere{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}.armyhere .ah{font-size:12px;color:#6a4a1a}
 #armybar{display:flex;gap:6px;overflow-x:auto;padding:2px 52px 2px 0}
 .chip{flex:0 0 auto;padding:5px 11px;border-radius:16px;border:1px solid #2e1f10;background:linear-gradient(#7d5a36,#5b3f24);color:#f6e7c1;font-size:12.5px;box-shadow:0 2px 5px rgba(0,0,0,.45);height:auto}
 .chip.sel{background:linear-gradient(#f0c24c,#c8901e);color:#2c1d08;font-weight:bold}
@@ -1088,7 +1089,7 @@ function applyBuild(k,b){
   if(G.own[b.node]!==k)return;
   if(b.kind==='ausbau'){G.dev[b.node]+=4;G.mood[b.node]=Math.min(100,G.mood[b.node]+10);bumpLevel(b.node,k)}
   else if(b.kind==='mauer')G.wall[k]=Math.min(2,G.wall[k]+1);
-  else G.fort[b.node]={type:b.kind,owner:k};
+  else{G.fort[b.node]={type:b.kind,owner:k};if(k===PL)G.knownFort[b.node]={type:b.kind,owner:k}}
   if(k===PL)logMsg((b.kind==='mauer'?'Burgmauer Stufe '+G.wall[k]:FORT[b.kind].name+' bei '+NODES[b.node].name)+' ist fertig.','good');
 }
 function completeOrders(k){
@@ -2665,7 +2666,10 @@ function nodeInfoHtml(id){
     if(b.node===id||(e&&(e.a===id||e.b===id)))h+='<div class="tag">Im Bau: '+buildLabel(b)+' · noch '+daysLeft(b)+' Tage</div>'+PB(progOf(b));
   }
   const kf=G.knownFort[id];
-  if(kf)h+='<div class="tag">'+FORT[kf.type].name+' ('+KINGS[kf.owner].name+')</div>';
+  if(own===PL&&n.type!=='castle'){const f=G.fort[id];h+='<div class="tag">🛡 '+(f?(f.type==='turm'?'▰▰ ':'▰▱ ')+FORT[f.type].name+' ✔':'▱▱ keine Befestigung')+'</div>'}
+  else if(kf)h+='<div class="tag">'+FORT[kf.type].name+' ('+KINGS[kf.owner].name+')</div>';
+  const here=G.armies.filter(x=>x.alive&&x.side===PL&&x.at===id);
+  if(here.length){h+='<div class="armyhere"><span class="ah">Heere hier:</span>'+here.map(x=>'<button class="chip'+(x===a?' sel':'')+'" data-act="sel" data-id="'+x.id+'">'+(x===a?'✔ ':'')+x.name+' · '+troops(x)+'</button>').join('')+'</div>'}
   h+='<div class="btns">';
   if(a&&a.at!==id){
     const pv=previewSegs(a,id);
@@ -2765,7 +2769,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.48 · 9.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.49 · 10.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -3024,7 +3028,7 @@ function zoomAt(cx,cy,f){
 function handleTap(px,py){
   if(G.over)return;
   for(const h of armyHits){
-    if(Math.hypot(h.x-px,h.y-py)<26){G.sel=h.id;G.pick=null;updateHud();return}
+    if(Math.hypot(h.x-px,h.y-py)<26){G.sel=h.id;const ar=G.armies.find(x=>x.id===h.id);G.pick=ar&&ar.at!==null&&G.known[ar.at]?ar.at:null;updateHud();return}
   }
   const wx=(px-view.x)/view.s,wy=(py-view.y)/view.s;
   const k=nodeK();
@@ -3090,6 +3094,7 @@ $('info').addEventListener('click',e=>{
   const b=e.target.closest&&e.target.closest('button[data-act]');if(!b||!G.pick)return;
   const act=b.dataset.act,a=selArmy(),id=G.pick;
   if(act==='x'){G.pick=null}
+  else if(act==='sel'){G.sel=Number(b.dataset.id)}
   else if(act==='go'&&a){planArmy(a,id);G.pick=null}
   else if(act==='fort'){if(orderBuild(PL,b.dataset.v,id))logMsg(FORT[b.dataset.v].name+' bei '+NODES[id].name+' beauftragt – fertig in '+daysLeft(G.K[PL].orders.build[G.K[PL].orders.build.length-1])+' Tagen.','good')}
   else if(act==='road'){
