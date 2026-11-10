@@ -81,6 +81,9 @@ input.rs:disabled{opacity:.4}
 .gew{font-weight:700;color:#7a4e08;white-space:nowrap;padding:6px 10px;border-radius:10px;background:rgba(255,206,80,.55);border:1px solid #c8901e}
 .chip.sel{outline:2px solid #fff3c4;box-shadow:0 0 0 3px #c8901e,0 2px 8px rgba(0,0,0,.5)}
 .armyhere{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}.armyhere .ah{font-size:12px;color:#6a4a1a}
+#warnb{position:fixed;left:50%;top:38%;transform:translateX(-50%);max-width:88%;padding:10px 16px;border-radius:12px;background:rgba(150,30,20,.92);color:#fff2d8;border:2px solid #f0c24c;font-weight:700;text-align:center;z-index:60;pointer-events:none;opacity:0;box-shadow:0 4px 14px rgba(0,0,0,.6)}
+#warnb.show{animation:warnf 4.5s ease-out}
+@keyframes warnf{0%{opacity:0}8%{opacity:1}80%{opacity:1}100%{opacity:0}}
 #armybar{display:flex;gap:6px;overflow-x:auto;padding:2px 52px 2px 0}
 .chip{flex:0 0 auto;padding:5px 11px;border-radius:16px;border:1px solid #2e1f10;background:linear-gradient(#7d5a36,#5b3f24);color:#f6e7c1;font-size:12.5px;box-shadow:0 2px 5px rgba(0,0,0,.45);height:auto}
 .chip.sel{background:linear-gradient(#f0c24c,#c8901e);color:#2c1d08;font-weight:bold}
@@ -1618,9 +1621,11 @@ function capitalWarn(){
       G.warned[b.id]=1;
       logMsg('⚠ WARNUNG: '+b.name+' ('+KINGS[b.side].name+', ca. '+Math.round(troops(b)/10)*10+' Mann) nähert sich deiner Hauptburg – nur noch '+h+(h===1?' Dorf':' Dörfer')+' entfernt!','bad');
       if(G.speed>1)G.speed=1;
-      if(typeof showOverlay==='function'&&typeof $==='function'){
-        showOverlay('<h1>⚠ Feind vor der Hauptburg</h1><p><b>'+b.name+'</b> von '+KINGS[b.side].name+' (ca. '+Math.round(troops(b)/10)*10+' Mann) ist nur noch '+h+' '+(h===1?'Dorf':'Dörfer')+' von deiner Hauptburg entfernt.</p><button class="big main" id="bM2">Militärrat</button><button class="big" id="bClose">Weiter</button>');
-        $('bM2').onclick=openMil;$('bClose').onclick=closeSheet;
+      if(typeof document!=='undefined'){ /* nicht blockierende Warnung, das Spiel läuft weiter */
+        let w=document.getElementById('warnb');
+        if(!w){w=document.createElement('div');w.id='warnb';document.body.appendChild(w)}
+        w.textContent='⚠ '+b.name+' ('+KINGS[b.side].name+') nur noch '+h+(h===1?' Dorf':' Dörfer')+' vor deiner Hauptburg!';
+        w.classList.remove('show');void w.offsetWidth;w.classList.add('show');
       }
     }
   }
@@ -2780,7 +2785,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.50 · 10.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.51 · 10.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
