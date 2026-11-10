@@ -1704,13 +1704,24 @@ function drawForts(n,k,known){
     }
     flag(c,-30,-2,col,dk,16);
   }else{
-    /* hölzerner Wachturm auf Stelzen */
-    c.strokeStyle='#3A2616';c.fillStyle='#7A5C38';c.lineWidth=1;
-    c.beginPath();c.moveTo(20,12);c.lineTo(23,-12);c.moveTo(32,12);c.lineTo(29,-12);c.moveTo(21,4);c.lineTo(31,-2);c.moveTo(31,4);c.lineTo(21,-2);c.stroke();
-    c.fillRect(19,-18,14,7);c.strokeRect(19,-18,14,7);
-    c.fillStyle='#4F3C26';c.beginPath();c.moveTo(17,-18);c.lineTo(26,-28);c.lineTo(35,-18);c.closePath();c.fill();c.stroke();
-    c.beginPath();c.moveTo(23,12);c.lineTo(20,16);c.moveTo(29,12);c.lineTo(32,16);c.stroke();
-    flag(c,26,-28,col,dk,12);
+    /* Befestigungsanlage: Graben, Steinmauer mit Zinnen, vier Ecktürme, Torhaus mit Fallgitter */
+    const cy=6,rx=40,ry=23,wh=9;
+    c.strokeStyle='rgba(60,70,90,.55)';c.lineWidth=4;c.beginPath();c.ellipse(0,cy+2,rx+4,ry+3,0,0,6.283);c.stroke();
+    c.strokeStyle='#3F3220';c.lineWidth=1;c.beginPath();c.ellipse(0,cy+2,rx+6,ry+5,0,0,6.283);c.stroke();
+    /* hintere Mauerhälfte, dann vordere */
+    wallBand(c,3,Math.PI,Math.PI*2,rx,ry,cy,wh);
+    wallTower(c,-rx*0.72,cy-ry*0.7,20,5.5);wallTower(c,rx*0.72,cy-ry*0.7,20,5.5);
+    wallBand(c,3,0,Math.PI,rx,ry,cy,wh);
+    wallTower(c,-rx,cy,23,6);wallTower(c,rx,cy,23,6);
+    /* Torhaus vorne */
+    const gx=0,gy=cy+ry;
+    wallTower(c,gx-8,gy,22,5.5);wallTower(c,gx+8,gy,22,5.5);
+    c.fillStyle='#8C8270';c.strokeStyle='#3D2E22';c.lineWidth=1;c.fillRect(gx-8,gy-22,16,12);c.strokeRect(gx-8,gy-22,16,12);
+    c.fillStyle='#1E150D';c.beginPath();c.moveTo(gx-5,gy);c.lineTo(gx-5,gy-9);c.arc(gx,gy-9,5,Math.PI,0);c.lineTo(gx+5,gy);c.closePath();c.fill();
+    c.strokeStyle='#6b5a44';c.lineWidth=.8;for(let i=-3;i<=3;i+=2){c.beginPath();c.moveTo(gx+i,gy-13);c.lineTo(gx+i,gy);c.stroke()}
+    c.beginPath();c.moveTo(gx-5,gy-6);c.lineTo(gx+5,gy-6);c.stroke();
+    flag(c,gx,gy-26,col,dk,14);
+    flag(c,-rx,cy-23,col,dk,11);flag(c,rx,cy-23,col,dk,11);
   }
   c.restore();
 }
@@ -2769,7 +2780,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.49 · 10.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.50 · 10.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
