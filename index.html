@@ -205,7 +205,7 @@ button:disabled{opacity:.45}
 /* ============================================================
    KONSTANTEN & KÖNIGREICHE
    ============================================================ */
-const SC=1.3,W=3380,H=3380,BGS=0.8;
+const SC=1.6,W=4160,H=4160,BGS=0.65,LF=1+(SC-1)*0.5;
 const MOVE_F={road:1,plain:2,forest:3,hills:3,swamp:4,mountain:5};
 const SUP_F ={road:1,plain:1.8,forest:3,hills:3,swamp:5,mountain:8};
 const COLLIDE_DIST=60, MAX_ARMIES=6, MIN_SPLIT=20, MIN_ALIVE=25;
@@ -259,8 +259,8 @@ const NODES={},EDGES=[],EMAP={},ADJ={};
 let RIVERS=[],RIVER_PTS=[];
 function applyEdge(e,type,ford){
   e.type=type;e.ford=!!ford;e.fordT=ford||0;
-  e.move=e.len/100*MOVE_F[type]+(ford?1.5:0);
-  e.sup=e.len/100*SUP_F[type]*(ford?2:1);
+  e.move=e.len/LF/100*MOVE_F[type]+(ford?1.5:0);
+  e.sup=e.len/LF/100*SUP_F[type]*(ford?2:1);
 }
 function resetEdges(){for(const e of EDGES)applyEdge(e,e.type0,e.ford0)}
 function edgePoint(e,fromId,t){
@@ -309,7 +309,7 @@ function segInter(p1,p2,p3,p4){
 let ISL=[0,1,2];
 const coastR=a=>SC*(1130+110*Math.sin(3*a+ISL[0])+75*Math.sin(5*a+ISL[1])+45*Math.sin(8*a+ISL[2]));
 const inIsland=(x,y,m)=>Math.hypot(x-W/2,y-H/2)<coastR(Math.atan2(y-H/2,x-W/2))-(m||0);
-function islandPts(n){const o=[];for(let i=0;i<n;i++){const a=i/n*6.283185,r=coastR(a);o.push({x:1300+Math.cos(a)*r,y:1300+Math.sin(a)*r})}return o}
+function islandPts(n){const o=[];for(let i=0;i<n;i++){const a=i/n*6.283185,r=coastR(a);o.push({x:W/2+Math.cos(a)*r,y:H/2+Math.sin(a)*r})}return o}
 function genWorld(seed){
   const rnd=mulberry32(seed);
   NS=(seed%997)+3;
@@ -322,14 +322,12 @@ function genWorld(seed){
   const nameFor=()=>{for(let i=0;i<40;i++){const n=PRE[Math.floor(rnd()*PRE.length)]+SUF[Math.floor(rnd()*SUF.length)];if(!used.has(n)){used.add(n);return n}}return 'Ort'+used.size};
   ISL=[(seed%61)/61*6.28,(seed%47)/47*6.28,(seed%29)/29*6.28];
   const caps=[];
-  for(let tries=0;caps.length<KIDS.length;tries++){
-    const md=SC*(tries<800?640:tries<1600?560:460);
-    const x=300+rnd()*(W-600),y=300+rnd()*(H-600);
-    if(!inIsland(x,y,330*SC))continue;
-    if(caps.every(c=>Math.hypot(c.x-x,c.y-y)>=md))caps.push({x,y});
-    if(tries>3000)break;
+  {const base=rnd()*6.283;
+    for(let i=0;i<KIDS.length;i++){
+      const a=base+i*6.283/KIDS.length+(rnd()-.5)*0.35,r=coastR(a)*(0.66+rnd()*0.06);
+      caps.push({x:W/2+Math.cos(a)*r,y:H/2+Math.sin(a)*r});
+    }
   }
-  while(caps.length<KIDS.length){const a=(135+60*caps.length)*Math.PI/180;caps.push({x:W/2+760*SC*Math.cos(a),y:H/2+760*SC*Math.sin(a)})}
   let nid=0;const pts=[];
   const mk=(type,x,y,owner,name)=>{const id='n'+(nid++);const n={id,type,x:Math.round(x),y:Math.round(y),owner:owner||null,name:name||nameFor()};NODES[id]=n;pts.push(n);return n};
   KIDS.forEach((k,i)=>{const n=mk('castle',caps[i].x,caps[i].y,k,KINGS[k].cap);n.capOf=k;KINGS[k].capital=n.id});
@@ -345,14 +343,17 @@ function genWorld(seed){
   };
   KIDS.forEach((k,i)=>{for(const t of TERR)place(t,caps[i].x,caps[i].y,120*SC,340*SC,k,112*SC)});
   const NEUT=['village','village','village','village','village','village','farm','farm','farm','farm','lumber','lumber','lumber','mine','mine','mine','mine','coal','coal','coal','tower','tower','tower','tower','ruin','ruin','ruin','cross','cross','pass'];
-  for(const t of NEUT.concat(NEUT.slice(0,12))){
-    for(let a=0;a<400;a++){
+  const NEUTALL=[];for(let i=0;i<2.4;i++)NEUTALL.push(...NEUT);
+  for(const t of NEUTALL.slice(0,Math.round(NEUT.length*2.4))){
+    let best=null,bd=-1;
+    for(let a=0;a<500;a++){
       const x=120+rnd()*(W-240),y=120+rnd()*(H-240);
       if(!inIsland(x,y,90*SC))continue;
-      if(pts.some(p=>Math.hypot(p.x-x,p.y-y)<150*SC))continue;
-      if(caps.some(c=>Math.hypot(c.x-x,c.y-y)<400*SC))continue;
-      mk(t,x,y,null);break;
+      let md=1e9;for(const p of pts){const d=Math.hypot(p.x-x,p.y-y);if(d<md)md=d}
+      if(md<150*SC)continue;
+      if(md>bd){bd=md;best={x,y}}
     }
+    if(best)mk(t,best.x,best.y,null);
   }
   /* Flüsse */
   RIVERS=[];
@@ -2830,7 +2831,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.52 · 11.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.53 · 11.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
