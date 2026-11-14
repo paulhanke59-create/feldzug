@@ -297,6 +297,7 @@ function pathFromTo(src,dst,key){
 }
 
 /* ---------- Weltgenerierung ---------- */
+const SAAR=["Merzig", "Wadern", "Losheim", "Mettlach", "Orscholz", "Perl", "Nennig", "Besseringen", "Beckingen", "Haustadt", "Dillingen", "Pachten", "Diefflen", "Saarlouis", "Roden", "Lisdorf", "Beaumarais", "Fraulautern", "Ensdorf", "Schwalbach", "Bous", "Saarwellingen", "Wallerfangen", "Rehlingen", "Siersburg", "Gersweiler", "Völklingen", "Püttlingen", "Riegelsberg", "Heusweiler", "Quierschied", "Friedrichsthal", "Sulzbach", "Dudweiler", "Schafbrücke", "Bübingen", "Güdingen", "Brebach", "Fechingen", "Ensheim", "Eschringen", "Gersheim", "Blieskastel", "Habkirchen", "Mandelbachtal", "Ommersheim", "Bliesransbach", "Kleinblittersdorf", "Bischmisheim", "Kirkel", "Limbach", "Homburg", "Erbach", "Bexbach", "Neunkirchen", "Wiebelskirchen", "Furpach", "Ottweiler", "Wemmetsweiler", "Merchweiler", "Illingen", "Uchtelfangen", "Schiffweiler", "Landsweiler", "Eppelborn", "Dirmingen", "Bubach", "Wiesbach", "Lebach", "Falscheid", "Steinbach", "Nalbach", "Piesbach", "Bettingen", "Schmelz", "Hüttersdorf", "Primstal", "Nonnweiler", "Otzenhausen", "Braunshausen", "Sötern", "Namborn", "Hirstein", "Oberthal", "Gronig", "Tholey", "Theley", "Sotzweiler", "Bergweiler", "Scheuern", "Marpingen", "Alsweiler", "Urexweiler", "Winterbach", "Wadrill", "Rappweiler", "Weiskirchen", "Konfeld", "Thailen", "Überherrn", "Felsberg", "Berus", "Bisten", "Altforweiler", "Differten", "Ludweiler", "Karlsbrunn", "Großrosseln", "Naßweiler", "Emmersweiler", "Fürstenhausen", "Wehrden", "Geislautern", "Luisenthal", "Klarenthal", "Rodenhof", "Bietschied", "Köllerbach", "Kutzhof", "Walpershofen", "Etzenhofen", "Lauterbach", "Hostenbach", "Merten", "Bachem", "Hausbach", "Fürweiler", "Leidingen", "Eimersdorf", "Bierbach", "Rubenheim", "Reinheim", "Walsheim", "Altheim", "Böckweiler", "Wolfersheim", "Peppenkum", "Medelsheim", "Kirrberg", "Aßweiler", "Webenheim", "Lautzkirchen", "Mimbach", "Niedergailbach", "Einöd", "Jägersfreude", "Heiligenwald", "Hüttigweiler", "Bildstock", "Elversberg", "Spiesen", "Dörrenbach", "Kohlhof", "Eiweiler", "Holz", "Rentrisch", "Sitterswald", "Hargarten", "Ormesheim", "Rilchingen", "Hanweiler", "Oberlimberg", "Wahlschied", "Bardenbach", "Ritterstraße"];
 const PRE=['Eich','Birken','Linden','Rot','Stein','Wolfs','Bären','Falken','Hohen','Nieder','Ober','Weiden','Moor','Buch','Tann','Adler','Raben','Eisen','Gold','Silber','Wald','Berg','Bach','Neu','Alt','Klein','Groß','Kalt','Warm','Nebel','Sonnen','Mond','Hirsch','Fuchs','Esch','Ahorn','Kiesel','Salz'];
 const SUF=['dorf','bach','tal','hof','furt','heim','au','stein','berg','feld','brück','wald','weiler','hausen','born'];
 function segInter(p1,p2,p3,p4){
@@ -319,7 +320,8 @@ function genWorld(seed){
   EDGES.length=0;
   calibrate(mulberry32(seed+1));
   const used=new Set();
-  const nameFor=()=>{for(let i=0;i<40;i++){const n=PRE[Math.floor(rnd()*PRE.length)]+SUF[Math.floor(rnd()*SUF.length)];if(!used.has(n)){used.add(n);return n}}return 'Ort'+used.size};
+  const SAARQ=SAAR.slice().sort(()=>rnd()-.5);
+  const nameFor=()=>{while(SAARQ.length){const n=SAARQ.pop();if(!used.has(n)){used.add(n);return n}}for(let i=0;i<40;i++){const n=PRE[Math.floor(rnd()*PRE.length)]+SUF[Math.floor(rnd()*SUF.length)];if(!used.has(n)){used.add(n);return n}}return 'Ort'+used.size};
   ISL=[(seed%61)/61*6.28,(seed%47)/47*6.28,(seed%29)/29*6.28];
   const caps=[];
   {const base=rnd()*6.283;
@@ -2831,7 +2833,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.53 · 11.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.54 · 14.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
