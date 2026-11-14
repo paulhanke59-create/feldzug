@@ -967,6 +967,9 @@ function conquer(att,vic){
   V.alive=false;
   for(const r of RES_KEYS)A.stock[r]+=V.stock[r]*0.5;
   for(const id in NODES)if(G.own[id]===vic){G.own[id]=att;if(att===PL||vic===PL||G.known[id])G.known[id]={owner:att};if(G.lvl[id]){G.lvl[id]=Math.max(1,G.lvl[id]-1);G.mood[id]=25;G.dev[id]=0}if(G.fort[id])delete G.fort[id]}
+  if(att===PL){ /* das ganze Land der gefallenen Burg wird aufgedeckt */
+    for(const id in NODES)if(NODES[id].owner===vic||KINGS[vic].capital===id){reveal(NODES[id].x,NODES[id].y,id===KINGS[vic].capital?620*SC:380*SC);G.known[id]={owner:att}}
+  }
   for(const b of G.armies)if(b.side===vic)b.alive=false;
   G.armies=G.armies.filter(x=>x.alive);
   logMsg((att===PL?'Du hast ':KINGS[att].name+' hat ')+KINGS[vic].name+' erobert!',att===PL?'good':'bad');
@@ -2872,7 +2875,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.58 · 14.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.59 · 14.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
