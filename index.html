@@ -307,8 +307,14 @@ function segInter(p1,p2,p3,p4){
   const u=((p3.x-p1.x)*(p2.y-p1.y)-(p3.y-p1.y)*(p2.x-p1.x))/d;
   return(t>=0&&t<=1&&u>=0&&u<=1)?t:null;
 }
-let ISL=[0,1,2];
-const coastR=a=>SC*(1130+110*Math.sin(3*a+ISL[0])+75*Math.sin(5*a+ISL[1])+45*Math.sin(8*a+ISL[2]));
+let ISL=[0,1,2,0,0];
+const coastR=a=>{
+  const d=a-ISL[3],A=1330,B=890,e=1/Math.sqrt(Math.pow(Math.cos(d)/A,2)+Math.pow(Math.sin(d)/B,2));
+  let bd=Math.atan2(Math.sin(a-ISL[4]),Math.cos(a-ISL[4]));
+  const bay=1-0.34*Math.exp(-bd*bd/0.12);
+  const r=(e+70*Math.sin(3*a+ISL[0])+55*Math.sin(5*a+ISL[1])+35*Math.sin(9*a+ISL[2]))*bay;
+  return Math.min(W/2-60,SC*r);
+};
 const inIsland=(x,y,m)=>Math.hypot(x-W/2,y-H/2)<coastR(Math.atan2(y-H/2,x-W/2))-(m||0);
 function islandPts(n){const o=[];for(let i=0;i<n;i++){const a=i/n*6.283185,r=coastR(a);o.push({x:W/2+Math.cos(a)*r,y:H/2+Math.sin(a)*r})}return o}
 function genWorld(seed){
@@ -322,7 +328,7 @@ function genWorld(seed){
   const used=new Set();
   const SAARQ=SAAR.slice().sort(()=>rnd()-.5);
   const nameFor=()=>{while(SAARQ.length){const n=SAARQ.pop();if(!used.has(n)){used.add(n);return n}}for(let i=0;i<40;i++){const n=PRE[Math.floor(rnd()*PRE.length)]+SUF[Math.floor(rnd()*SUF.length)];if(!used.has(n)){used.add(n);return n}}return 'Ort'+used.size};
-  ISL=[(seed%61)/61*6.28,(seed%47)/47*6.28,(seed%29)/29*6.28];
+  ISL=[(seed%61)/61*6.28,(seed%47)/47*6.28,(seed%29)/29*6.28,(seed%53)/53*3.1416,(seed%37)/37*6.28];
   const caps=[];
   {const base=rnd()*6.283;
     for(let i=0;i<KIDS.length;i++){
@@ -2833,7 +2839,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.54 · 14.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.55 · 14.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
