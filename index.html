@@ -1111,6 +1111,35 @@ const BUILD_DAYS={schanze:10,turm:20,mauer:30,ausbau:15};
 const roadDays=e=>Math.max(8,Math.ceil(e.len/12));
 const daysLeft=o=>Math.max(1,Math.ceil((o.end-G.time)/DAY_S));
 const progOf=o=>clamp((G.time-o.start)/(o.end-o.start),0,1);
+/* Besatzung: Männer vom nächsten Heer ziehen zur neuen Befestigung */
+function mergeGarrisons(){
+  for(const a of G.armies){
+    if(!a.alive||!a.garr||a.at!==a.garr||a.path.length)continue;
+    const o=G.armies.find(b=>b!==a&&b.alive&&b.side===a.side&&b.garr===a.garr&&b.at===b.garr&&!b.path.length&&b.id<a.id);
+    if(!o)continue;
+    for(const t of UK)o.units[t]+=a.units[t];
+    o.food+=a.food;o.arrows+=a.arrows;o.startTroops+=a.startTroops;a.alive=false;
+    if(G.sel===a.id)G.sel=o.id;
+  }
+}
+function sendGarrison(k,node,n){
+  const rr=dijkstra(node,'move');
+  const cand=sideArmies(k).filter(a=>a.at!==null&&troops(a)>n+10).sort((p,q)=>(rr.dist[p.at]??1e9)-(rr.dist[q.at]??1e9));
+  const src=cand[0];
+  if(!src)return false;
+  const take=blankUnits();let need=n;
+  for(const t of ['inf','bow','cav']){const m=Math.min(need,src.units[t]);take[t]=m;need-=m}
+  const tn=UK.reduce((s,t)=>s+take[t],0);if(!tn)return false;
+  const fr=tn/troops(src);
+  const nb=mkArmy(k,'Besatzung '+NODES[node].name,take,src.at);
+  nb.food=src.food*fr;src.food-=nb.food;nb.arrows=src.arrows*fr;src.arrows-=nb.arrows;
+  for(const t of UK)src.units[t]-=take[t];
+  nb.garr=node;nb.startTroops=tn;src.startTroops=Math.max(1,src.startTroops-tn);
+  G.armies.push(nb);
+  if(src.at!==node)planArmy(nb,node);
+  if(k===PL)logMsg(tn+' Mann ziehen als Besatzung von '+src.name+' nach '+NODES[node].name+'.','good');
+  return true;
+}
 function applyBuild(k,b){
   if(b.kind==='strasse'){
     const e=EMAP[b.edge];
@@ -1122,6 +1151,8 @@ function applyBuild(k,b){
   else if(b.kind==='mauer')G.wall[k]=Math.min(2,G.wall[k]+1);
   else{G.fort[b.node]={type:b.kind,owner:k};if(k===PL)G.knownFort[b.node]={type:b.kind,owner:k}}
   if(k===PL)logMsg((b.kind==='mauer'?'Burgmauer Stufe '+G.wall[k]:FORT[b.kind].name+' bei '+NODES[b.node].name)+' ist fertig.','good');
+  if(b.kind==='schanze')sendGarrison(k,b.node,10);
+  else if(b.kind==='turm')sendGarrison(k,b.node,20);
 }
 function completeOrders(k){
   const K=G.K[k];
@@ -1364,7 +1395,7 @@ function upkeep(a){
   }
 }
 function checkDestroyed(a){
-  if(a.alive&&troops(a)<MIN_ALIVE){
+  if(a.alive&&troops(a)<(a.garr?1:MIN_ALIVE)){
     a.alive=false;
     if(a.side===PL)logMsg(a.name+' ist aufgerieben.','battle');
     else if(G.visIds[a.id])logMsg('Ein fremdes Heer ('+KINGS[a.side].name+') ist aufgerieben.','good');
@@ -1692,6 +1723,7 @@ function step(dt){
   collisions();
   updateParts(dt);updateFx(dt);
   G.accS+=dt;while(G.accS>=1&&!G.over){G.accS-=1;secondTick();
+    mergeGarrisons();
     /* stehende Heere übernehmen Orte, die ihnen (noch) nicht gehören */
     for(const a of G.armies.slice()){
       if(G.over)break;
@@ -2840,7 +2872,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.57 · 14.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.58 · 14.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
