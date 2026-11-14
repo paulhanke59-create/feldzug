@@ -668,7 +668,7 @@ const RECR={
   inf:  {n:20,cost:{arms:20,gold:30}},
   bow:  {n:20,cost:{bows:20,ammo:20,gold:30}},
   cav:  {n:10,cost:{arms:10,iron:10,gold:60,food:20}},
-  can:  {n:4, cost:{cannons:4,gold:60}},
+  can:  {n:1, cost:{cannons:1,gold:15}},
   scout:{n:4, cost:{gold:20,wood:8}}
 };
 const WALL_COST=[{wood:80,iron:30,gold:100},{wood:170,iron:80,gold:240}],WALL_DAYS=[20,35];
@@ -1106,7 +1106,7 @@ function developNodes(k){
     bumpLevel(id,k);
   }
 }
-const REC_DAYS={inf:8,bow:9,cav:14,can:18,scout:5};
+const REC_DAYS={inf:8,bow:9,cav:14,can:6,scout:5};
 const BUILD_DAYS={schanze:10,turm:20,mauer:30,ausbau:15};
 const roadDays=e=>Math.max(8,Math.ceil(e.len/12));
 const daysLeft=o=>Math.max(1,Math.ceil((o.end-G.time)/DAY_S));
@@ -1513,7 +1513,7 @@ function aiRecruit(k){
   for(let i=0;i<7;i++){
     const t=order[Math.floor(G.rnd()*order.length)];
     if(t==='scout')continue;
-    if(G.K[k].orders.rq.filter(x=>x.t===t).length<3)orderRecruit(k,t);
+    if(G.K[k].orders.rq.filter(x=>x.t===t).length<(t==='can'?6:3))orderRecruit(k,t);
   }
   for(const t of ['inf','bow','inf','bow'])if(G.K[k].orders.rq.filter(x=>x.t===t).length<3)orderRecruit(k,t);
 }
@@ -2839,7 +2839,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.55 · 14.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.56 · 14.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
