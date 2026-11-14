@@ -2697,27 +2697,50 @@ function centerNode(id){
 }
 const mini=$('mini'),mctx=mini.getContext('2d');
 const mm2=document.createElement('canvas');mm2.width=mm2.height=mini.width;
+const mm3=document.createElement('canvas');mm3.width=mm3.height=mini.width;
 function drawMini(){
   const S=mini.width,f=S/W;
   mctx.clearRect(0,0,S,S);
-  mctx.fillStyle='#35596a';mctx.fillRect(0,0,S,S);
+  mctx.fillStyle='#22323d';mctx.fillRect(0,0,S,S);
   mctx.imageSmoothingEnabled=true;mctx.imageSmoothingQuality='high';
-  mctx.drawImage(bg,0,0,bg.width,bg.height,0,0,S,S);
-  /* Unerkundetes abdunkeln */
+  /* Unbekanntes Land: nur schematisch (Inselumriss) */
+  const isl=islandPts(120);
+  mctx.save();mctx.beginPath();isl.forEach((p,i)=>i?mctx.lineTo(p.x*f,p.y*f):mctx.moveTo(p.x*f,p.y*f));mctx.closePath();
+  mctx.fillStyle='#4d4b3d';mctx.fill();
+  mctx.clip();
+  /* erkundetes Land etwas heller */
   const m2=mm2.getContext('2d');
-  m2.globalCompositeOperation='source-over';m2.clearRect(0,0,S,S);m2.fillStyle='rgba(22,16,9,.66)';m2.fillRect(0,0,S,S);
-  m2.globalCompositeOperation='destination-out';m2.imageSmoothingEnabled=true;m2.drawImage(explCv,0,0,GW,GW,0,0,S,S);
+  m2.globalCompositeOperation='source-over';m2.clearRect(0,0,S,S);m2.fillStyle='rgba(205,190,140,.30)';m2.fillRect(0,0,S,S);
+  m2.globalCompositeOperation='destination-in';m2.imageSmoothingEnabled=true;m2.drawImage(explCv,0,0,GW,GW,0,0,S,S);
   mctx.drawImage(mm2,0,0);
-  /* Eigenes Gebiet */
+  mctx.restore();
+  mctx.strokeStyle='#9a9272';mctx.lineWidth=1.2;mctx.beginPath();isl.forEach((p,i)=>i?mctx.lineTo(p.x*f,p.y*f):mctx.moveTo(p.x*f,p.y*f));mctx.closePath();mctx.stroke();
+  /* Eigenes Gebiet: hell und topografisch genau */
+  const m3=mm3.getContext('2d');
+  m3.globalCompositeOperation='source-over';m3.clearRect(0,0,S,S);
+  const R=300*f;
   for(const id in NODES){
     if(G.own[id]!==PL||!G.known[id])continue;
-    const n=NODES[id],rr=22*S/120;
-    const gr=mctx.createRadialGradient(n.x*f,n.y*f,0,n.x*f,n.y*f,rr);
-    gr.addColorStop(0,KINGS[PL].color+'dd');gr.addColorStop(.6,KINGS[PL].color+'88');gr.addColorStop(1,KINGS[PL].color+'00');
-    mctx.fillStyle=gr;mctx.beginPath();mctx.arc(n.x*f,n.y*f,rr,0,6.283);mctx.fill();
+    const n=NODES[id],gr=m3.createRadialGradient(n.x*f,n.y*f,R*.6,n.x*f,n.y*f,R);
+    gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(1,'rgba(255,255,255,0)');
+    m3.fillStyle=gr;m3.beginPath();m3.arc(n.x*f,n.y*f,R,0,6.283);m3.fill();
+  }
+  m3.globalCompositeOperation='source-in';m3.imageSmoothingEnabled=true;m3.drawImage(bg,0,0,bg.width,bg.height,0,0,S,S);
+  mctx.save();mctx.filter='brightness(1.12) contrast(1.1)';mctx.drawImage(mm3,0,0);mctx.restore();
+  /* Straßen und Orte */
+  for(const e of EDGES){
+    if(G.own[e.a]!==PL||G.own[e.b]!==PL||!G.known[e.a]||!G.known[e.b])continue;
+    mctx.strokeStyle='rgba(255,246,214,.75)';mctx.lineWidth=.9;mctx.beginPath();mctx.moveTo(NODES[e.a].x*f,NODES[e.a].y*f);mctx.lineTo(NODES[e.b].x*f,NODES[e.b].y*f);mctx.stroke();
+  }
+  for(const id in NODES){
+    const n=NODES[id],k=G.own[id];if(!G.known[id])continue;
+    const mine=k===PL;
+    mctx.fillStyle=k?KINGS[k].color:'#cfc7aa';mctx.strokeStyle=mine?'#fff4c8':'rgba(0,0,0,.6)';mctx.lineWidth=mine?1.1:.6;
+    mctx.beginPath();mctx.arc(n.x*f,n.y*f,mine?2.3:1.5,0,6.283);mctx.fill();mctx.stroke();
   }
   /* Hauptburgen als kleine Burgen */
   for(const k of KIDS){
+    if(k!==PL&&!G.known[KINGS[k].capital])continue;
     const n=NODES[KINGS[k].capital],x=n.x*f,y=n.y*f,mine=k===PL,dead=!G.K[k].alive,u=S/120;
     mctx.save();mctx.translate(x,y);mctx.scale(u,u);
     mctx.fillStyle=dead?'#666':KINGS[k].color;mctx.strokeStyle=mine?'#ffe9a0':'#1a120a';mctx.lineWidth=mine?2:1.4;
@@ -2733,7 +2756,7 @@ function drawMini(){
     mctx.strokeStyle='rgba(255,50,30,'+(0.5+0.5*ph)+')';mctx.lineWidth=3;mctx.beginPath();mctx.arc(cn.x*f,cn.y*f,8+ph*8,0,6.283);mctx.stroke();
     mctx.fillStyle='#ff2a1a';mctx.strokeStyle='#fff';mctx.lineWidth=1.2;mctx.beginPath();mctx.arc(pb.x*f,pb.y*f,3.6,0,6.283);mctx.fill();mctx.stroke();
   }
-  for(const a of sideArmies(PL)){const p=armyPos(a);mctx.fillStyle='#fff';mctx.strokeStyle='#000';mctx.lineWidth=.8;mctx.beginPath();mctx.arc(p.x*f,p.y*f,2.4,0,6.283);mctx.fill();mctx.stroke()}
+  for(const a of sideArmies(PL)){const p=armyPos(a);mctx.fillStyle='#fff';mctx.strokeStyle=KINGS[PL].color;mctx.lineWidth=1.8;mctx.beginPath();mctx.arc(p.x*f,p.y*f,3,0,6.283);mctx.stroke();mctx.fill()}
   mctx.strokeStyle='rgba(255,255,255,.95)';mctx.lineWidth=1.6;
   mctx.strokeRect((-view.x/view.s)*f,(-view.y/view.s)*f,(cw/view.s)*f,(ch/view.s)*f);
   $('miniLbl').textContent='Insel: '+Math.round(landShare(PL)*100)+' % dein';
@@ -2875,7 +2898,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.59 · 14.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.60 · 14.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
