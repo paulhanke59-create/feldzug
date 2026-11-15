@@ -161,7 +161,7 @@ button:disabled{opacity:.45}
 .fbars{margin:6px 0}.fb{display:flex;align-items:center;gap:8px;margin:5px 0}.fb .fi{width:24px;text-align:center;font-size:17px}
 .fb .ft2{position:relative;flex:1;height:14px;background:rgba(60,40,20,.2);border:1px solid rgba(90,70,45,.5);border-radius:7px;overflow:hidden}
 .fb .ft2 i{display:block;height:100%;border-radius:6px;transition:width .25s}.fb .ft2 i.ok{background:linear-gradient(#7fc060,#3f8a30)}.fb .ft2 i.mid{background:linear-gradient(#e8c050,#b8861c)}.fb .ft2 i.low{background:linear-gradient(#d86a4a,#9a3418)}
-.fb .ft2 u{position:absolute;top:0;bottom:0;width:2px;background:#3a2412;opacity:.8}.fb .fv{width:68px;text-align:right;font-size:12.5px}
+.fb .ft2 b{position:absolute;top:0;bottom:0;width:2px;background:#fff;opacity:.85}.fb .ft2 u{position:absolute;top:0;bottom:0;width:2px;background:#3a2412;opacity:.8}.fb .fv{width:68px;text-align:right;font-size:12.5px}
 .pb{height:8px;background:rgba(60,40,20,.18);border-radius:4px;overflow:hidden;margin-top:4px;border:1px solid rgba(90,70,45,.35)}.pb i{display:block;height:100%;background:linear-gradient(#e0b04a,#a87a2c)}
 </style>
 </head>
@@ -2976,7 +2976,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.80 · 15.11.2026</small></h1>'+
+  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.81 · 15.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -3013,15 +3013,16 @@ function advisorWeights(){return adviseWeights(PL)}
 const ECO_RES=['gold','food','wood','ore','coal','iron','arms','bows','ammo','cannons'];
 const NEED={food:600,wood:300,iron:150,arms:60,gold:400};
 function wealthHtml(){
-  const w=wealthCheck(),s=G.K[PL].stock;
+  const w=wealthCheck(),s=G.K[PL].stock,p=econPlan(PL);
   let h='<div class="icrow wealth"><span class="ic">🏆 <b>'+(G.wealth||0)+'/'+WEALTH_MONTHS+'</b> Monate</span>';
   const bd=w.c.find(x=>x.k==='border');h+='<span class="ic" title="'+bd.t+'" style="opacity:'+(bd.ok?1:.55)+'">🛡️'+(bd.ok?'✔':'✘')+'</span></div><div class="fbars">';
   for(const x of w.c){
     if(!NEED[x.k])continue;
-    const need=NEED[x.k],v=s[x.k],pc=clamp(v/(need*1.5),0,1)*100;
-    h+='<div class="fb" title="'+x.t+'"><span class="fi">'+RICON[x.k]+'</span><div class="ft2"><i class="'+(x.ok?'ok':v>=need?'mid':'low')+'" style="width:'+pc.toFixed(1)+'%"></i><u style="left:'+(100/1.5).toFixed(2)+'%"></u></div><span class="fv">'+f0(v)+'/'+need+'</span></div>';
+    const need=NEED[x.k],v=s[x.k],pv=Math.max(0,v+(p.d[x.k]||0)),pc=clamp(pv/(need*1.5),0,1)*100,cc=clamp(v/(need*1.5),0,1)*100;
+    const cls=pv>=need&&(p.d[x.k]||0)>=0?'ok':pv>=need?'mid':'low';
+    h+='<div class="fb" title="'+x.t+'"><span class="fi">'+RICON[x.k]+'</span><div class="ft2"><i class="'+cls+'" style="width:'+pc.toFixed(1)+'%"></i><b style="left:'+cc.toFixed(1)+'%"></b><u style="left:'+(100/1.5).toFixed(2)+'%"></u></div><span class="fv">'+f0(pv)+'/'+need+'</span></div>';
   }
-  return h+'</div>';
+  return h+'</div><p><small>Balken: Lager zum Monatsende. Heller Strich: Lager jetzt.</small></p>';
 }
 function ecoForecast(){
   const K=G.K[PL],p=econPlan(PL);
