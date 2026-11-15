@@ -131,7 +131,7 @@ button:disabled{opacity:.45}
 #card button.main{background:linear-gradient(#c9573f,#9c3a27);color:#fff7e6;border-color:#6b2416;font-weight:bold}
 #card .row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(122,102,71,.35);font-size:13.5px}
 #card .row button{height:38px;font-size:13.5px;flex:0 0 auto}
-#bEco,#bMil{flex:2}
+#bEco{flex:2}
 .srow{margin:6px 0}.sl{display:flex;justify-content:space-between;font-size:13px}
 .srow input{width:100%;height:22px;margin:0;accent-color:#a0701c}
 .ft{width:100%;border-collapse:collapse;font-size:13px}.ft td{padding:2px 4px;border-bottom:1px solid rgba(122,102,71,.25)}.ft td:nth-child(n+2){text-align:right}.ft .fh td{font-size:11px;color:#6a4a1a}.wofuer{margin:6px 0}
@@ -192,8 +192,7 @@ button:disabled{opacity:.45}
   <div id="info" class="panel"></div>
 </div>
 <div id="ctl" class="panel">
-  <button class="wood" id="bEco">Wirtschaft</button>
-  <button class="wood" id="bMil">Militär</button>
+  <button class="wood" id="bEco">👑 Reichsrat</button>
 </div>
 
 <div id="scroll"><div class="rod"></div><div class="par"><small>Es ist nun</small><b id="scrT"></b></div><div class="rod"></div></div>
@@ -713,9 +712,12 @@ const foesOf=side=>G.armies.filter(a=>a.alive&&a.side!==side);
 const armyById=id=>G.armies.find(a=>a.id===id);
 const soldiersOf=k=>{let s=0;for(const a of sideArmies(k))s+=troops(a);for(const u in G.K[k].gar)s+=G.K[k].gar[u];return s};
 const workforce=k=>Math.max(0,Math.round(popOf(k)*0.65-soldiersOf(k)));
-function canPay(k,c){const s=G.K[k].stock;for(const r in c)if(s[r]<c[r]-1e-9)return false;return true}
-function pay(k,c){const s=G.K[k].stock;for(const r in c)s[r]-=c[r]}
-function refund(k,c){const s=G.K[k].stock;for(const r in c)s[r]+=c[r]}
+/* Haushalt: Das Gold teilt sich in eine Heer-Kasse und eine Bau-Kasse (Straßen, Dorfausbau, Handel) */
+const potBau=k=>{const K=G.K[k];return clamp(K.pb===undefined?K.stock.gold*0.5:K.pb,0,K.stock.gold)};
+const potOf=(k,cat)=>cat==='bau'?potBau(k):G.K[k].stock.gold-potBau(k);
+function canPay(k,c,cat){const s=G.K[k].stock;for(const r in c)if(s[r]<c[r]-1e-9)return false;if(cat&&c.gold&&potOf(k,cat)<c.gold-1e-9)return false;return true}
+function pay(k,c,cat){const K=G.K[k],s=K.stock;K.pb=potBau(k);for(const r in c)s[r]-=c[r];if(cat==='bau'&&c.gold)K.pb-=c.gold;K.pb=clamp(K.pb,0,s.gold)}
+function refund(k,c,cat){const K=G.K[k],s=K.stock;K.pb=potBau(k);for(const r in c)s[r]+=c[r];if(cat==='bau'&&c.gold)K.pb+=c.gold;K.pb=clamp(K.pb,0,s.gold)}
 const RICON={food:'🍞',wood:'🪵',ore:'⛰️',coal:'⚫',iron:'🔩',gold:'🪙',arms:'⚔️',bows:'🏹',ammo:'🪶',cannons:'🪨'};
 const UICON={inf:'🛡️',bow:'🏹',cav:'🐎',can:'🪨',scout:'👁️'};
 const costText=c=>Object.keys(c).filter(r=>c[r]>0).map(r=>{const lack=G&&G.K&&G.K[PL]&&G.K[PL].stock[r]<c[r];return '<span class="ic'+(lack?' lack':'')+'">'+RICON[r]+'<b>'+c[r]+'</b></span>'}).join('');
@@ -759,7 +761,7 @@ function newGame(){
   for(const id in NODES)G.own[id]=NODES[id].owner;
   for(const k of KIDS){
     G.K[k]={id:k,focus:'balanced',alive:true,stock:startStock(),w:defaultWeights(),prod:'arms',tax:1,loy:80,
-      orders:{rec:{inf:0,bow:0,cav:0,can:0,scout:0},rq:[],build:[]},gar:blankUnits(),hunger:0};
+      orders:{rec:{inf:0,bow:0,cav:0,can:0,scout:0},rq:[],build:[]},gar:blankUnits(),hunger:0,alloc:50};
     G.wall[k]=0;G.cnt[k]=1;
     const cap=KINGS[k].capital;
     const j=1+(KIDS.indexOf(k)%3)*0.05;
@@ -1051,7 +1053,7 @@ function econPlan(k,wOverride,prodOverride){
   const d={};for(const r of RES_KEYS)d[r]=0;
   const gross={};
   const add=(r,v)=>{d[r]+=v;st[r]+=v};
-  gross.food=eff.farm*PRATE.farm*pm;gross.wood=eff.wood*PRATE.wood*pm;gross.ore=eff.ore*PRATE.ore*pm;gross.coal=eff.coal*PRATE.coal*pm;
+  gross.food=eff.farm*PRATE.farm*pm*1.0;gross.wood=eff.wood*PRATE.wood*pm*0.7;gross.ore=eff.ore*PRATE.ore*pm*0.7;gross.coal=eff.coal*PRATE.coal*pm*0.7;
   add('food',gross.food);add('wood',gross.wood);add('ore',gross.ore);add('coal',gross.coal);
   let u=Math.min(eff.smelt*1.5*pm,st.ore,st.coal*2);
   add('ore',-u);add('coal',-u*0.5);add('iron',u);gross.iron=u;
@@ -1067,7 +1069,7 @@ function econPlan(k,wOverride,prodOverride){
   add('wood',-u*3.5);add('bows',u);add('ammo',u*3);gross.bows=u;
   const pop=popOf(k);
   const eat=pop*0.45;add('food',-eat);
-  gross.gold=pop*0.1*TAXM[K.tax]*(K.loy/100);add('gold',gross.gold);
+  gross.gold=pop*0.055*TAXM[K.tax]*(K.loy/100);add('gold',gross.gold);
   /* Ausgaben: Sold fürs Heer, Unterhalt für Befestigungen */
   let men=0;for(const a of sideArmies(k))men+=troops(a);for(const u of UK)men+=K.gar[u]||0;
   let keep=G.wall[k]*12;for(const id in G.fort){const f=G.fort[id];if(f.owner===k&&G.own[id]===k)keep+=f.type==='turm'?10:4}
@@ -1091,8 +1093,12 @@ function wealthCheck(){
 }
 function applyEconomy(k){
   const K=G.K[k],plan=econPlan(k);
-  const short=K.stock.gold+plan.d.gold<0;
+  const short=K.stock.gold+plan.d.gold<0,g0=K.stock.gold;
+  K.pb=potBau(k);
   for(const r of RES_KEYS)K.stock[r]=Math.max(0,K.stock[r]+plan.d[r]);
+  {const g1=K.stock.gold,dg=g1-g0;
+   if(dg>=0)K.pb+=dg*(K.alloc===undefined?50:K.alloc)/100;else K.pb=g0>0?K.pb*g1/g0:0;
+   K.pb=clamp(K.pb,0,g1)}
   K.unpaid=short;
   if(short){K.loy=Math.max(5,K.loy-4);for(const a of sideArmies(k))for(const u of UK)a.units[u]=Math.floor(a.units[u]*0.95)}
   K.stock.food=Math.min(K.stock.food,2500);
@@ -1204,25 +1210,17 @@ function completeOrders(k){
 const UNAME_L={inf:'Fußvolk',bow:'Bogenschützen',cav:'Reiter',can:'Katapulte',scout:'Späher'};
 function orderRecruit(k,t){
   const K=G.K[k];
-  if(!canPay(k,RECR[t].cost))return false;
-  pay(k,RECR[t].cost);K.orders.rec[t]++;
+  if(!canPay(k,RECR[t].cost,'mil'))return false;
+  pay(k,RECR[t].cost,'mil');K.orders.rec[t]++;
   const q=K.orders.rq.filter(x=>x.t===t),start=q.length?q[q.length-1].end:G.time;
   K.orders.rq.push({t,start,end:start+REC_DAYS[t]*DAY_S});return true;
 }
 function cancelRecruit(k,t){
   const K=G.K[k];if(K.orders.rec[t]<=0)return;
-  refund(k,RECR[t].cost);K.orders.rec[t]--;
+  refund(k,RECR[t].cost,'mil');K.orders.rec[t]--;
   for(let i=K.orders.rq.length-1;i>=0;i--)if(K.orders.rq[i].t===t){K.orders.rq.splice(i,1);break}
 }
 const fieldCount=k=>sideArmies(k).filter(x=>!x.garr).length;
-const isBorder=id=>ADJ[id].some(({to})=>G.own[to]!==G.own[id]);
-const fortCap=k=>2+Math.floor(owned(k).length/5);
-const fortCount=k=>Object.values(G.fort).filter(f=>f.owner===k).length+G.K[k].orders.build.filter(b=>b.kind==='schanze').length;
-function fortReason(k,node){
-  if(!isBorder(node))return '🔒 Nur an Grenzorten';
-  if(fortCount(k)>=fortCap(k))return '🔒 Limit '+fortCount(k)+'/'+fortCap(k)+' (mehr Orte = mehr Befestigungen)';
-  return '';
-}
 function buildAllowed(k,kind,node){
   const n=NODES[node];if(G.own[node]!==k)return false;
   if(kind==='ausbau')return n.type!=='castle'&&(G.lvl[node]||1)<5&&!G.K[k].orders.build.some(b=>b.node===node&&b.kind==='ausbau');
@@ -1230,15 +1228,15 @@ function buildAllowed(k,kind,node){
   if(n.type==='castle')return false;
   if(kind==='turm'?!(G.fort[node]&&G.fort[node].type==='schanze'):G.fort[node])return false;
   if(G.K[k].orders.build.some(b=>b.node===node&&b.kind!=='mauer'&&b.kind!=='ausbau'))return false;
-  if(kind==='schanze'&&fortReason(k,node))return false;
   return true;
 }
 function orderBuild(k,kind,node){
   const cost=kind==='mauer'?wallCost(k):FORT[kind].cost,days=kind==='mauer'?WALL_DAYS[Math.min(1,G.wall[k])]:BUILD_DAYS[kind];
-  if(!buildAllowed(k,kind,node)||!canPay(k,cost))return false;
-  pay(k,cost);G.K[k].orders.build.push({kind,node,cost,lvl:kind==='mauer'?G.wall[k]+1:0,start:G.time,end:G.time+days*DAY_S});return true;
+  const cat=kind==='ausbau'?'bau':'mil';
+  if(!buildAllowed(k,kind,node)||!canPay(k,cost,cat))return false;
+  pay(k,cost,cat);G.K[k].orders.build.push({kind,node,cost,lvl:kind==='mauer'?G.wall[k]+1:0,start:G.time,end:G.time+days*DAY_S});return true;
 }
-const roadCost=e=>({wood:Math.ceil(e.len/5),gold:Math.ceil(e.len/4)});
+const roadCost=e=>({wood:Math.ceil(e.len/12),gold:Math.ceil(e.len/30)});
 const buildLabel=b=>{if(b.kind==='strasse'){const e=EMAP[b.edge];return 'Straße '+NODES[e.a].name+' – '+NODES[e.b].name}return b.kind==='mauer'?'Burgmauer Stufe '+b.lvl:FORT[b.kind].name+' bei '+NODES[b.node].name};
 function roadPending(k,e){return G.K[k].orders.build.some(b=>b.kind==='strasse'&&EMAP[b.edge]===e)}
 /* Straße A–B ist erlaubt, wenn A oder B schon über Straßen mit der Hauptburg verbunden ist */
@@ -1276,12 +1274,12 @@ function roadGap(k,A,B){
 }
 function orderRoad(k,e,fromNode){
   if(e.type==='road'||roadPending(k,e)||!passOk(k,e.a)||!passOk(k,e.b))return false;
-  const c=roadCost(e);if(!canPay(k,c))return false;
-  pay(k,c);G.K[k].orders.build.push({kind:'strasse',edge:e.a<e.b?e.a+'|'+e.b:e.b+'|'+e.a,node:fromNode,cost:c,start:G.time,end:G.time+roadDays(e)*DAY_S});return true;
+  const c=roadCost(e);if(!canPay(k,c,'bau'))return false;
+  pay(k,c,'bau');G.K[k].orders.build.push({kind:'strasse',edge:e.a<e.b?e.a+'|'+e.b:e.b+'|'+e.a,node:fromNode,cost:c,start:G.time,end:G.time+roadDays(e)*DAY_S});return true;
 }
 function cancelBuild(k,idx){
   const b=G.K[k].orders.build[idx];if(!b)return;
-  refund(k,b.cost||FORT[b.kind].cost);G.K[k].orders.build.splice(idx,1);
+  refund(k,b.cost||FORT[b.kind].cost,(b.kind==='strasse'||b.kind==='ausbau')?'bau':'mil');G.K[k].orders.build.splice(idx,1);
 }
 function absorbGarrison(k){
   const K=G.K[k];let gc=0;for(const u of UK)gc+=K.gar[u];
@@ -1365,9 +1363,9 @@ function routeProfit(rt){return profitOf(rt.cost)}
 function addRoute(a,b){
   if(G.routes.length>=MAX_ROUTES||G.own[a]!==PL||G.own[b]!==PL||a===b)return false;
   if(G.routes.some(r=>(r.a===a&&r.b===b)||(r.a===b&&r.b===a)))return false;
-  if(!canPay(PL,{gold:60}))return false;
+  if(!canPay(PL,{gold:60},'bau'))return false;
   const pr=pathFromTo(a,b);if(!pr)return false;
-  pay(PL,{gold:60});
+  pay(PL,{gold:60},'bau');
   G.routes.push({id:G.nextId++,a,b,nodes:[a].concat(pr.path),k:0,p:0,cost:pr.cost,cycle:pr.cost/0.32,origin:a});
   logMsg('Handelsroute '+NODES[a].name+' – '+NODES[b].name+' eröffnet.','good');
   return true;
@@ -2841,10 +2839,9 @@ function nodeInfoHtml(id){
     h+=pv?'<button class="go" data-act="go"'+(noCan?' disabled':'')+'>'+(noCan?UICON.can+' nötig · ':'')+'Hierher marschieren · ca. '+Math.ceil(pv.secs)+' s</button>':'<span class="bad">Nicht erreichbar</span>';
   }
   if(own===PL&&n.type!=='castle'){
-    if(!G.fort[id]&&!G.K[PL].orders.build.some(b=>b.node===id&&b.kind==='schanze')){const fr=fortReason(PL,id);if(fr)h+='<div class="tag bad">'+fr+'</div>'}
     for(const kd of ['schanze','turm']){
       const ok=buildAllowed(PL,kd,id);
-      if(ok||(kd==='schanze'&&G.fort[id]===undefined))h+='<button data-act="fort" data-v="'+kd+'"'+(ok&&canPay(PL,FORT[kd].cost)?'':' disabled')+'>'+FORT[kd].name+' · '+costText(FORT[kd].cost)+'</button>';
+      if(ok||(kd==='schanze'&&G.fort[id]===undefined))h+='<button data-act="fort" data-v="'+kd+'"'+(ok&&canPay(PL,FORT[kd].cost,'mil')?'':' disabled')+'>'+FORT[kd].name+' · '+costText(FORT[kd].cost)+'</button>';
     }
   }
   if(own===PL)for(const {to,e} of ADJ[id]){
@@ -2852,7 +2849,7 @@ function nodeInfoHtml(id){
     const c=roadCost(e);
     h+='<button data-act="road" data-v="'+to+'">Straße nach '+NODES[to].name+' · '+costText(c)+'</button>';
   }
-  if(own===PL&&buildAllowed(PL,'ausbau',id))h+='<button data-act="fort" data-v="ausbau"'+(canPay(PL,FORT.ausbau.cost)?'':' disabled')+'>Dorf fördern · '+costText(FORT.ausbau.cost)+'</button>';
+  if(own===PL&&buildAllowed(PL,'ausbau',id))h+='<button data-act="fort" data-v="ausbau"'+(canPay(PL,FORT.ausbau.cost,'bau')?'':' disabled')+'>Dorf fördern · '+costText(FORT.ausbau.cost)+'</button>';
   if(own===PL&&(isEco(n)||n.type==='castle'))h+='<button data-act="trade">Handel</button>';
   h+='<button data-act="info">Dorfinfo</button>';
   h+='</div>';
@@ -2941,7 +2938,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.69 · 15.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.70 · 15.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -2957,7 +2954,7 @@ function showIntro(){
     $('mdesc').innerHTML='<small>'+MODE_INFO[MODE][1]+'</small>';
   });
   if($('bLoad'))$('bLoad').onclick=()=>{if(!loadGame()){$('bLoad').textContent='Laden fehlgeschlagen'}};
-  $('bStart').onclick=()=>{introOpen=false;openEco()};
+  $('bStart').onclick=()=>{introOpen=false;openCouncil()};
   $('bStart2').onclick=()=>{introOpen=false;hideOverlay()};
 }
 function showGameOver(){
@@ -2976,9 +2973,9 @@ function showMonthReport(){
   let h='<h1>Monatsbericht</h1><p><small>'+di.month+' '+di.year+'</small></p><ul>'+G.report.map(r=>'<li>'+r+'</li>').join('')+'</ul>';
   const tip=advice().slice(0,2);
   if(tip.length)h+='<h2>Ratschlag</h2>'+tip.map(t=>'<p>• '+t.text+'</p>').join('');
-  h+='<button class="big main" id="bE">Wirtschaftsrat</button><button class="big main" id="bM">Militärrat</button><button class="big" id="bClose">Weiter</button>';
+  h+='<button class="big main" id="bE">Reichsrat</button><button class="big" id="bClose">Weiter</button>';
   showOverlay(h);
-  $('bE').onclick=openEco;$('bM').onclick=openMil;$('bClose').onclick=closeSheet;
+  $('bE').onclick=openEco;$('bClose').onclick=closeSheet;
 }
 
 /* ---------- Wirtschaftsrat ---------- */
@@ -3006,20 +3003,33 @@ function ecoForecast(){
   return h;
 }
 const FOCI=[['balanced','Ausgewogen','Von allem etwas'],['arms','Waffen','Mehr Schwerter und Eisen für Fußvolk und Reiter'],['bows','Bögen & Munition','Für Bogenschützen und Nachschub an Pfeilen'],['cannons','Katapulte','Schmiede bauen Belagerungs-Katapulte aus Holz und Eisen. Sie schwächen Mauern und Befestigungen des Feindes.']];
-function openEco(){
+function ecoHtml(){
   const K=G.K[PL];
   K.w=focusWeights(PL,K.focus);
   const p=econPlan(PL);
-  let h='<h1>Wirtschaftsrat</h1><p><small>Volk '+p.pop+' · Zufriedenheit '+Math.round(K.loy)+' %. Die Arbeiter verteilen sich selbst – du setzt nur den Schwerpunkt. Genug Brot ist immer gesichert.</small></p>';
-  h+='<h2>Schwerpunkt</h2>';
+  let h='<h2>Wirtschaft</h2><p><small>Volk '+p.pop+' · Zufriedenheit '+Math.round(K.loy)+' %. Die Arbeiter verteilen sich selbst – du setzt nur den Schwerpunkt. Genug Brot ist immer gesichert.</small></p>';
+  h+='<h3>Schwerpunkt</h3>';
   for(const [k,n,d] of FOCI)h+='<div class="row"><div><b>'+n+'</b><br><small>'+d+'</small></div><button data-f="'+k+'" class="'+(K.focus===k?'sel':'')+'">'+(K.focus===k?'✔ gewählt':'Wählen')+'</button></div>';
   h+='<div class="row"><div><b>Steuern</b><br><small>Hoch = mehr Gold, aber Unmut</small></div><span class="seg" id="segTax">'+TAX_LAB.map((l,i)=>'<button data-v="'+i+'" class="'+(K.tax===i?'on':'')+'">'+l+'</button>').join('')+'</span></div>';
-  h+='<h2>Erwartet bis Monatsende</h2><div id="fc">'+ecoForecast()+'</div>';
-  h+='<button class="big main" id="bClose">Fertig</button>';
-  showOverlay(h);
-  $('card').querySelectorAll('button[data-f]').forEach(b=>b.onclick=()=>{K.focus=b.dataset.f;planT=0;openEco()});
-  $('segTax').onclick=e=>{const b=e.target.closest('button');if(!b)return;K.tax=Number(b.dataset.v);planT=0;openEco()};
-  $('bClose').onclick=closeSheet;
+  h+='<h3>Erwartet bis Monatsende</h3><div id="fc">'+ecoForecast()+'</div>';
+  return h;
+}
+function ecoBind(){
+  const K=G.K[PL];
+  $('card').querySelectorAll('button[data-f]').forEach(b=>b.onclick=()=>{K.focus=b.dataset.f;planT=0;openCouncil()});
+  $('segTax').onclick=e=>{const b=e.target.closest('button');if(!b)return;K.tax=Number(b.dataset.v);planT=0;openCouncil()};
+}
+function budgetHtml(){
+  const K=G.K[PL],pb=potBau(PL),pm=K.stock.gold-pb,al=K.alloc===undefined?50:K.alloc;
+  let h='<h2>Haushalt</h2><p><small>Neues Gold teilt sich zum Monatsende auf: Heer (Rekruten, Befestigungen, Mauer) und Bau (Straßen, Dorf fördern, Handel). Sold und Unterhalt zahlt die Staatskasse vorab.</small></p>';
+  h+='<div class="icrow"><span class="ic big">⚔️ Heer-Kasse <b>'+f0(pm)+'</b></span><span class="ic big">🏗️ Bau-Kasse <b>'+f0(pb)+'</b></span></div>';
+  h+='<div class="rrow"><div class="rtop"><span>⚔️ Heer</span><span class="rval" id="al_v"><b>'+(100-al)+'</b> % : <b>'+al+'</b> %</span><span>🏗️ Bau</span></div><input type="range" class="rs" id="alSl" min="0" max="100" step="10" value="'+al+'"></div>';
+  return h;
+}
+function budgetBind(){
+  const K=G.K[PL],s=$('alSl');
+  s.oninput=()=>{$('al_v').innerHTML='<b>'+(100-s.value)+'</b> % : <b>'+s.value+'</b> %'};
+  s.onchange=()=>{K.alloc=Number(s.value);openCouncil()};
 }
 
 /* ---------- Militärrat ---------- */
@@ -3039,10 +3049,9 @@ function dirHints(){
   out.sort((a,b)=>a.f-b.f);
   return out.slice(0,2);
 }
-function openMil(){
+function milHtml(){
   const K=G.K[PL],a=selArmy();
-  let h='<h1>Militärrat</h1><div class="icrow">'+stockText(['gold','arms','bows','ammo','cannons','iron','wood'])+'</div>';
-  h+='<h2>Heere</h2><p><small>💪 Stärke: Fußvolk 1 · Bogen 1,5 · Reiter 2,5 · Katapult 8. Der Stärkere gewinnt, bei großem Unterschied wird der Schwächere fast aufgerieben.</small></p>';
+  let h='<h2>Heer</h2><p><small>💪 Stärke: Fußvolk 1 · Bogen 1,5 · Reiter 2,5 · Katapult 8. Der Stärkere gewinnt, bei großem Unterschied wird der Schwächere fast aufgerieben.</small></p>';
   let actsHtml='';
   if(a){
     const canSplit=a.at!==null&&fieldCount(PL)<MAX_ARMIES&&troops(a)>=2*MIN_SPLIT;
@@ -3063,7 +3072,7 @@ function openMil(){
   }
   const gs=sideArmies(PL).filter(y=>y.garr&&y!==a);
   if(gs.length)h+='<div class="icrow">🏰 '+gs.map(y=>'<span class="ic">'+NODES[y.garr].name+' <b>'+troops(y)+'</b></span>').join('')+'</div>';
-  h+='<h2>Rekruten</h2>';
+  h+='<h3>Rekruten</h3>';
   for(const t of UK){
     const r=RECR[t],n=K.orders.rec[t];
     const qi=K.orders.rq.filter(x=>x.t===t),first=qi[0];
@@ -3073,17 +3082,19 @@ function openMil(){
   }
   const gc=UK.reduce((s,u)=>s+K.gar[u],0);
   if(gc)h+='<div class="icrow">🏰 '+UK.filter(u2=>K.gar[u2]>0).map(u2=>'<span class="ic">'+UICON[u2]+'<b>'+K.gar[u2]+'</b></span>').join('')+'</div>';
-  h+='<h2>Befestigungen</h2>';
+  h+='<h3>Befestigungen</h3>';
   const mOk=buildAllowed(PL,'mauer',KINGS[PL].capital);
   const wl=G.wall[PL],wc=wallCost(PL);
-  h+='<div class="row"><div><b>🧱 '+wl+'/2</b> <small>🛡 ×'+(1.25+0.65*wl).toFixed(2).replace('.',',')+'</small>'+(wl>=2?'':'<br><span class="icrow">'+costText(wc)+'<small>⏳'+WALL_DAYS[Math.min(1,wl)]+'</small></span>')+'</div>'+(wl>=2?'':'<button data-fm="1"'+(mOk&&canPay(PL,wc)?'':' disabled')+'>Stufe '+(wl+1)+'</button>')+'</div>';
+  h+='<div class="row"><div><b>🧱 '+wl+'/2</b> <small>🛡 ×'+(1.25+0.65*wl).toFixed(2).replace('.',',')+'</small>'+(wl>=2?'':'<br><span class="icrow">'+costText(wc)+'<small>⏳'+WALL_DAYS[Math.min(1,wl)]+'</small></span>')+'</div>'+(wl>=2?'':'<button data-fm="1"'+(mOk&&canPay(PL,wc,'mil')?'':' disabled')+'>Stufe '+(wl+1)+'</button>')+'</div>';
   K.orders.build.forEach((b,i)=>{h+='<div class="row"><div style="flex:1"><b>'+buildLabel(b)+'</b><br><small>⏳ '+daysLeft(b)+'</small>'+PB(progOf(b))+'</div><button data-bc="'+i+'">Abbrechen</button></div>'});
   h+='<p><small></small></p>';
-  h+='<button class="big main" id="bClose">Fertig</button>';
-  showOverlay(h);
-  $('card').querySelectorAll('button[data-sel]').forEach(b=>b.onclick=()=>{G.sel=Number(b.dataset.sel);centerOn(selArmy());openMil()});
+  return h;
+}
+function milBind(){
+  const K=G.K[PL],a=selArmy();
+  $('card').querySelectorAll('button[data-sel]').forEach(b=>b.onclick=()=>{G.sel=Number(b.dataset.sel);centerOn(selArmy());openCouncil()});
   {const sr=$('card').querySelector('.selrow');if(sr&&sr.scrollIntoView)sr.scrollIntoView({block:'nearest'})}
-  $('card').querySelectorAll('button[data-a]').forEach(b=>b.onclick=()=>{$('card')._acts[Number(b.dataset.a)].fn();openMil()});
+  $('card').querySelectorAll('button[data-a]').forEach(b=>b.onclick=()=>{$('card')._acts[Number(b.dataset.a)].fn();openCouncil()});
   $('card').querySelectorAll('input.rs').forEach(s=>{
     const t=s.dataset.t;
     s.oninput=()=>{const v=$('rv_'+t);if(v)v.innerHTML='<b>'+s.value+'</b> × '+RECR[t].n+' = '+(Number(s.value)*RECR[t].n)};
@@ -3091,14 +3102,22 @@ function openMil(){
       const tg=Number(s.value);
       while(G.K[PL].orders.rec[t]<tg&&orderRecruit(PL,t));
       while(G.K[PL].orders.rec[t]>tg)cancelRecruit(PL,t);
-      openMil();
+      openCouncil();
     };
   });
-  $('card').querySelectorAll('button[data-fm]').forEach(b=>b.onclick=()=>{orderBuild(PL,'mauer',KINGS[PL].capital);openMil()});
-  $('card').querySelectorAll('button[data-bc]').forEach(b=>b.onclick=()=>{cancelBuild(PL,Number(b.dataset.bc));openMil()});
+  $('card').querySelectorAll('button[data-fm]').forEach(b=>b.onclick=()=>{orderBuild(PL,'mauer',KINGS[PL].capital);openCouncil()});
+  $('card').querySelectorAll('button[data-bc]').forEach(b=>b.onclick=()=>{cancelBuild(PL,Number(b.dataset.bc));openCouncil()});
   $('card').querySelectorAll('button[data-gt]').forEach(b=>b.onclick=()=>{G.pick=b.dataset.gt;centerNode(b.dataset.gt);closeSheet()});
+}
+function openCouncil(){
+  let h='<h1>Reichsrat</h1><div class="icrow">'+stockText(['gold','food','wood','iron','arms','bows','ammo','cannons'])+'</div>';
+  h+=budgetHtml()+ecoHtml()+milHtml();
+  h+='<button class="big main" id="bClose">Fertig</button>';
+  showOverlay(h);
+  budgetBind();ecoBind();milBind();
   $('bClose').onclick=closeSheet;
 }
+const openEco=openCouncil,openMil=openCouncil;
 function openTrade(id){
   const mine=Object.keys(NODES).filter(x=>x!==id&&G.own[x]===PL&&(isEco(NODES[x])||NODES[x].type==='castle'));
   let h='<h1>Handel</h1><p><small>Ein Händlerwagen pendelt dauerhaft zwischen zwei deiner Orte und bringt bei jeder Ankunft Gold und Waren. Feindliche Heere können ihn überfallen. Einrichtung: 60 Gold, dauerhaft, höchstens '+MAX_ROUTES+' Routen. Du hast '+G.routes.length+'.</small></p>';
@@ -3106,7 +3125,7 @@ function openTrade(id){
   h+='<h2>Neue Route von '+NODES[id].name+'</h2>';
   const opts=mine.map(x=>({x,r:pathFromTo(id,x)})).filter(o=>o.r&&!G.routes.some(r=>(r.a===id&&r.b===o.x)||(r.a===o.x&&r.b===id))).sort((p,q)=>p.r.cost-q.r.cost).slice(0,6);
   if(!opts.length)h+='<p><small>Kein weiterer eigener Ort erreichbar.</small></p>';
-  opts.forEach((o,i)=>{h+='<div class="row"><div><b>'+NODES[o.x].name+'</b><br><small>ca. '+profitOf(o.r.cost)+' Gold je Fahrt · '+Math.ceil(o.r.cost/0.32)+' s Fahrzeit</small></div><button data-n="'+i+'"'+((canPay(PL,{gold:60})&&G.routes.length<MAX_ROUTES)?'':' disabled')+'>Einrichten</button></div>'});
+  opts.forEach((o,i)=>{h+='<div class="row"><div><b>'+NODES[o.x].name+'</b><br><small>ca. '+profitOf(o.r.cost)+' Gold je Fahrt · '+Math.ceil(o.r.cost/0.32)+' s Fahrzeit</small></div><button data-n="'+i+'"'+((canPay(PL,{gold:60},'bau')&&G.routes.length<MAX_ROUTES)?'':' disabled')+'>Einrichten</button></div>'});
   h+='<button class="big" id="bClose">Schließen</button>';
   showOverlay(h);
   $('card').querySelectorAll('button[data-d]').forEach(b=>b.onclick=()=>{removeRoute(Number(b.dataset.d));openTrade(id)});
@@ -3274,7 +3293,6 @@ $('zIn').onclick=()=>zoomAt(cw/2,ch/2,1.35);
 $('zOut').onclick=()=>zoomAt(cw/2,ch/2,1/1.35);
 $('zCenter').onclick=()=>centerOn(selArmy());
 $('bEco').onclick=openEco;
-$('bMil').onclick=openMil;
 $('bHelp').onclick=openHelp;
 $('bPlay').onclick=()=>{G.paused=!G.paused;updateHud()};
 $('bSpd').onclick=()=>{G.speed=G.speed===1?2:G.speed===2?4:1;updateHud()};
@@ -3292,7 +3310,7 @@ $('info').addEventListener('click',e=>{
   else if(act==='road'){
     const to=b.dataset.v,e=EMAP[id+'|'+to],gap=roadGap(PL,id,to);
     if(gap){showOverlay('<h1>Straße nicht möglich</h1><p>Zuerst muss der Weg nach <b>'+NODES[gap.to].name+'</b> ausgebaut werden (von '+NODES[gap.from].name+'). Nur über eine Straße kommen Material und Arbeiter dorthin.</p><button class="big" id="bClose">Verstanden</button>');return}
-    if(!canPay(PL,roadCost(e))){showOverlay('<h1>Zu wenig Material</h1><p>Die Straße nach <b>'+NODES[to].name+'</b> kostet '+costText(roadCost(e))+'.</p><button class="big" id="bClose">Verstanden</button>');return}
+    if(!canPay(PL,roadCost(e),'bau')){showOverlay('<h1>Zu wenig Material</h1><p>Die Straße nach <b>'+NODES[to].name+'</b> kostet '+costText(roadCost(e))+'.</p><button class="big" id="bClose">Verstanden</button>');return}
     if(orderRoad(PL,e,id))logMsg('Straße nach '+NODES[to].name+' beauftragt – fertig in '+daysLeft(G.K[PL].orders.build[G.K[PL].orders.build.length-1])+' Tagen.','good');
   }
   else if(act==='trade'){openTrade(id);return}
