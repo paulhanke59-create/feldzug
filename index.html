@@ -651,7 +651,7 @@ function dateInfo(t){
     left:Math.max(0,Math.ceil((MONTH_S-(t%MONTH_S))/DAY_S)),frac:(t%MONTH_S)/MONTH_S};
 }
 const EXP=20,GW=Math.ceil(W/EXP);
-let G=null,bg=null,MODE='normal';
+let G=null,bg=null,MODE='history';
 const explCv=document.createElement('canvas');explCv.width=GW;explCv.height=GW;
 const ectx=explCv.getContext('2d');
 const bump={};
@@ -769,7 +769,8 @@ function newGame(){
   }
   G.sel=sideArmies(PL)[0].id;
   {const ps=PERSONAS.slice();for(let i=ps.length-1;i>0;i--){const j=Math.floor(G.rnd()*(i+1));[ps[i],ps[j]]=[ps[j],ps[i]]}
-   KIDS.filter(k=>k!==PL).forEach((k,i)=>{G.persona[k]=ps[i%ps.length];G.grudge[k]={}});
+   const fo=['balanced','arms','bows','cannons'];
+   KIDS.filter(k=>k!==PL).forEach((k,i)=>{G.persona[k]=ps[i%ps.length];G.grudge[k]={};G.K[k].focus=fo[Math.floor(G.rnd()*fo.length)];G.K[k].tax=G.rnd()<0.6?1:(G.rnd()<0.5?0:2)});
    for(const k of KIDS)G.start0[k]=owned(k).length}
   buildBackground(seed);
   for(const id in NODES)G.known[id]=null;
@@ -1331,7 +1332,7 @@ function monthEnd(){
   G.nextMonth+=MONTH_S;
   const di=dateInfo(G.time);
   for(const k of aliveKings()){
-    if(k===PL)G.K[k].w=focusWeights(k,G.K[k].focus);
+    G.K[k].w=focusWeights(k,G.K[k].focus);
     if(k===PL)G.devLog=[];
     developNodes(k);
     const plan=applyEconomy(k);
@@ -1609,7 +1610,7 @@ function nearestFreeEco(b,limit){
   return bd<=limit?best:null;
 }
 function aiProfile(k){
-  const m=G.mode||'normal';
+  const m=G.mode||'history';
   if(m==='easy')return{expand:false,chase:false,conq:null,cap:null};
   if(m==='normal')return{expand:true,chase:true,conq:{m:4,t:350,ok:()=>true},cap:null};
   if(m==='hard')return{expand:true,chase:true,conq:{m:2,t:250,ok:()=>true},cap:{m:3,t:300,pref:()=>G.K[PL].alive?KINGS[PL].capital:null,ok:()=>true}};
@@ -2969,23 +2970,15 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.71 · 15.11.2026</small></h1>'+
+  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.72 · 15.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
-  '<li><b>Wirtschaftsrat</b>: Schwerpunkt wählen (Waffen, Bögen, Katapulte) und Steuern. Mehr nicht.</li>'+
-  '<li><b>Militärrat</b>: Heer, Rekruten, Befestigungen, Späher, Kriegszüge.</li>'+
+  '<li><b>Reichsrat</b>: Haushalt (Heer/Bau), Steuern, Schwerpunkt, Heer, Rekruten, Befestigungen.</li>'+
   '<li>Rekruten und Bauten brauchen einige Tage; den Fortschritt siehst du im Militärrat und am Ort. Das Spiel läuft in Echtzeit (⏸ Pause, 1×/2×/4×); Fenster halten die Zeit an.</li>'+
   '<li>Ziel: <b>Sichere deine Wirtschaft!</b> Sorge für Brot, Holz, Eisen, Waffen und Gold und halte deine Grenzen sicher. Du gewinnst, wenn alle Vorräte 6 Monate lang stimmen und kein Ort verloren geht. Oder erobere alle fünf anderen Hauptburgen. Fällt deine Hauptburg, ist alles verloren. <b>Katapulte</b> brechen Mauern und Schanzen; ohne mindestens ein Katapult im Heer kann keine Burg gestürmt werden.</li></ul>'+
-  '<h2>Schwierigkeit</h2><div class="modes" id="modes">'+['easy','normal','hard','history'].map(m=>'<button data-m="'+m+'" class="'+(MODE===m?'sel':'')+'">'+MODE_INFO[m][0]+'</button>').join('')+'</div><p class="mdesc" id="mdesc"><small>'+MODE_INFO[MODE][1]+'</small></p>'+
-  (saveInfo()?'<button class="big main" id="bLoad">Spielstand fortsetzen (Monat '+saveInfo().m+')</button>':'')+'<button class="big main" id="bStart">'+(saveInfo()?'Neues Spiel: ':'')+'Erster Wirtschaftsrat</button><button class="big" id="bStart2">Gleich losspielen</button>');
-  $('modes').querySelectorAll('button').forEach(b=>b.onclick=()=>{
-    MODE=b.dataset.m;G.mode=MODE;
-    $('modes').querySelectorAll('button').forEach(x=>x.classList.toggle('sel',x===b));
-    $('mdesc').innerHTML='<small>'+MODE_INFO[MODE][1]+'</small>';
-  });
+  (saveInfo()?'<button class="big main" id="bLoad">Spielstand fortsetzen (Monat '+saveInfo().m+')</button>':'')+'<button class="big main" id="bStart2">Neues Spiel starten</button>');
   if($('bLoad'))$('bLoad').onclick=()=>{if(!loadGame()){$('bLoad').textContent='Laden fehlgeschlagen'}};
-  $('bStart').onclick=()=>{introOpen=false;openCouncil()};
   $('bStart2').onclick=()=>{introOpen=false;hideOverlay()};
 }
 function showGameOver(){
