@@ -838,6 +838,15 @@ function refreshKnown(){
     if(!G.lastReveal[k]){G.lastReveal[k]=1;reveal(s.x,s.y,s.r)}
   }
   if(Object.keys(G.lastReveal).length>4000)G.lastReveal={};
+  /* Straßen von eigenen Orten aus werden entlang des ganzen Wegs aufgedeckt */
+  for(const id in NODES){
+    if(G.own[id]!==PL)continue;
+    for(const {to,e} of ADJ[id]){
+      const key='r'+id+'|'+to;if(G.lastReveal[key])continue;G.lastReveal[key]=1;
+      const A=NODES[id],B=NODES[to],len=Math.hypot(B.x-A.x,B.y-A.y),st=Math.max(2,Math.ceil(len/70));
+      for(let i=1;i<st;i++){const t=i/st;reveal(A.x+(B.x-A.x)*t,A.y+(B.y-A.y)*t,95)}
+    }
+  }
   for(const id in NODES){
     const n=NODES[id];
     let v=false;for(const s of src)if(Math.hypot(s.x-n.x,s.y-n.y)<s.r){v=true;break}
@@ -2918,7 +2927,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.64 · 15.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.65 · 15.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
