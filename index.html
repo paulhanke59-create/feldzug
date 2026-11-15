@@ -1755,9 +1755,19 @@ function secondTick(){
   G.armies=G.armies.filter(a=>a.alive);
   for(const k of aliveKings())if(G.K[k].gar&&UK.some(u=>G.K[k].gar[u]>0))absorbGarrison(k);
 }
+/* Haushalt wirkt auf das Tempo: mehr Anteil = schneller, weniger = langsamer (50 % = normal) */
+function budgetSpeed(k,cat){const a=G.K[k].alloc===undefined?50:G.K[k].alloc;return 0.25+1.5*(cat==='bau'?100-a:a)/100}
+function applyBudgetSpeed(dt){
+  for(const k of aliveKings()){
+    const K=G.K[k],sb=budgetSpeed(k,'bau'),sm=budgetSpeed(k,'mil');
+    for(const b of K.orders.build){const s=(b.kind==='strasse'||b.kind==='ausbau')?sb:sm,sh=dt*(1-s);b.start+=sh;b.end+=sh}
+    for(const o of K.orders.rq){const sh=dt*(1-sm);o.start+=sh;o.end+=sh}
+  }
+}
 function step(dt){
   if(G.over)return;
   G.time+=dt;
+  applyBudgetSpeed(dt);
   for(const a of G.armies){
     if(!a.alive||G.time<a.haltUntil)continue;
     stepArmy(a,speedOf(a)/TURN_S*dt);
@@ -2964,7 +2974,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.76 · 15.11.2026</small></h1>'+
+  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.77 · 15.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -3028,7 +3038,7 @@ function sliderRow(id,title,l,r,val,min,max,txt){
   return '<div class="rrow"><div class="rtop"><b>'+title+'</b><span class="rval" id="'+id+'_v">'+txt+'</span></div><input type="range" class="rs" id="'+id+'" min="'+min+'" max="'+max+'" step="1" value="'+val+'"><div class="rtop"><small>'+l+'</small><small>'+r+'</small></div></div>';
 }
 const focTxt=i=>FOCI[i][1],taxTxt=i=>TAX_LAB[i];
-const pctTxt=v=>'<b>'+v*10+' %</b>';
+const pctTxt=v=>'<b>'+v*10+' %</b> · ×'+(0.25+1.5*v/10).toFixed(2).replace('.',',');
 function sliderHtml(){
   const K=G.K[PL],al=(K.alloc===undefined?50:K.alloc)/10,fi=Math.max(0,FOCI.findIndex(f=>f[0]===K.focus));
   let h='';
