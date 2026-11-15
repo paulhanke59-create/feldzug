@@ -2700,31 +2700,30 @@ function render(){
   ctx.setTransform(1,0,0,1,0,0);
 }
 function drawRoadWork(){
-  const bl=G.K[PL].orders.build,T=performance.now()/1000;
+  const bl=G.K[PL].orders.build,T=performance.now()/1000,Z=Math.max(1,1.6/view.s);
   for(const b of bl){
     if(b.kind!=='strasse')continue;
     const e=EMAP[b.edge];if(!e)continue;
     const from=b.node===e.b?e.b:e.a,p=clamp((G.time-b.start)/Math.max(1,b.end-b.start),0,1);
-    const pts=[];const N=24;for(let i=0;i<=N;i++)pts.push(edgePoint(e,from,i/N));
-    const path=(n)=>{ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let i=1;i<=n;i++)ctx.lineTo(pts[i].x,pts[i].y)};
+    const N=40,pts=[];for(let i=0;i<=N;i++)pts.push(edgePoint(e,from,i/N));
+    const f=p*N,n=Math.floor(f),fr=f-n;
+    const done=pts.slice(0,n+1);
+    if(n<N){const a=pts[n],c=pts[n+1];done.push({x:a.x+(c.x-a.x)*fr,y:a.y+(c.y-a.y)*fr})}
+    const trace=(q)=>{ctx.beginPath();ctx.moveTo(q[0].x,q[0].y);for(let i=1;i<q.length;i++)ctx.lineTo(q[i].x,q[i].y)};
     ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
-    /* geplante Strecke: pulsierend, laufende Striche */
-    ctx.setLineDash([5,5]);ctx.lineDashOffset=-T*14;
-    ctx.strokeStyle='rgba(255,214,90,'+(0.45+0.25*Math.sin(T*4))+')';ctx.lineWidth=4.5;path(N);ctx.stroke();
-    /* fertiger Teil als Pflasterstraße */
-    const n=Math.floor(p*N),f=p*N-n;
-    if(p>0){
-      const q=pts.slice(0,n+1);if(n<N){const a=pts[n],c=pts[n+1];q.push({x:a.x+(c.x-a.x)*f,y:a.y+(c.y-a.y)*f})}
-      const pp=()=>{ctx.beginPath();ctx.moveTo(q[0].x,q[0].y);for(let i=1;i<q.length;i++)ctx.lineTo(q[i].x,q[i].y)};
-      ctx.setLineDash([]);ctx.strokeStyle='rgba(50,38,24,.7)';ctx.lineWidth=6.6;pp();ctx.stroke();
-      ctx.strokeStyle='#B9AF9A';ctx.lineWidth=5.2;pp();ctx.stroke();
-      ctx.strokeStyle='rgba(232,225,206,.85)';ctx.lineWidth=2;ctx.setLineDash([1.6,1.4]);pp();ctx.stroke();
-      const tip=q[q.length-1];
-      ctx.setLineDash([]);ctx.font='16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(Math.sin(T*6)>0?'⛏️':'🔨',tip.x,tip.y-9);
-      ctx.fillStyle='rgba(20,14,8,.85)';ctx.fillRect(tip.x-15,tip.y+7,30,9);
-      ctx.fillStyle='#F0C040';ctx.fillRect(tip.x-14,tip.y+8,28*p,7);
-      ctx.fillStyle='#fff';ctx.font='bold 7px sans-serif';ctx.fillText(Math.round(p*100)+'%',tip.x,tip.y+11.5);
+    /* noch offene Strecke: Absteckung */
+    const rest=done.length>1?[done[done.length-1]].concat(pts.slice(n+1)):pts;
+    ctx.setLineDash([4*Z,5*Z]);ctx.lineDashOffset=-T*10;ctx.strokeStyle='rgba(120,40,20,'+(0.45+0.25*Math.sin(T*4))+')';ctx.lineWidth=2.6*Z;trace(rest);ctx.stroke();
+    /* Pflaster deckt den Pfad Stück für Stück ab */
+    if(done.length>1){
+      ctx.setLineDash([]);
+      ctx.strokeStyle='rgba(50,38,24,.8)';ctx.lineWidth=6.8*Z;trace(done);ctx.stroke();
+      ctx.strokeStyle='#C9BFA8';ctx.lineWidth=5.4*Z;trace(done);ctx.stroke();
+      ctx.strokeStyle='rgba(88,78,62,.85)';ctx.lineWidth=3.8*Z;ctx.setLineDash([1.6*Z,1.4*Z]);trace(done);ctx.stroke();
+      ctx.strokeStyle='rgba(240,234,214,.9)';ctx.lineWidth=2*Z;ctx.lineDashOffset=1.5*Z;trace(done);ctx.stroke();
+      const tip=done[done.length-1];
+      ctx.setLineDash([]);ctx.font=Math.round(16*Z)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(Math.sin(T*6)>0?'⛏️':'🔨',tip.x,tip.y-9*Z);
     }
     ctx.restore();
   }
@@ -2970,7 +2969,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.72 · 15.11.2026</small></h1>'+
+  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.73 · 15.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
