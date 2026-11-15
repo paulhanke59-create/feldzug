@@ -340,7 +340,7 @@ function genWorld(seed){
   let nid=0;const pts=[];
   const mk=(type,x,y,owner,name)=>{const id='n'+(nid++);const n={id,type,x:Math.round(x),y:Math.round(y),owner:owner||null,name:name||nameFor()};NODES[id]=n;pts.push(n);return n};
   KIDS.forEach((k,i)=>{const n=mk('castle',caps[i].x,caps[i].y,k,KINGS[k].cap);n.capOf=k;KINGS[k].capital=n.id});
-  const TERR=['village','village','village','farm','farm','lumber','lumber','mine','mine','coal'];
+  const TERR=['village','village','village','village','farm','farm','lumber','lumber','mine','coal'];
   const place=(type,cx,cy,rmin,rmax,owner,mind)=>{
     for(let t=0;t<80;t++){
       const a=rnd()*6.283,r=rmin+rnd()*(rmax-rmin),x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;
@@ -351,7 +351,7 @@ function genWorld(seed){
     return null;
   };
   KIDS.forEach((k,i)=>{for(const t of TERR)place(t,caps[i].x,caps[i].y,120*SC,340*SC,k,112*SC)});
-  const NEUT=['village','village','village','village','village','village','farm','farm','farm','farm','lumber','lumber','lumber','mine','mine','mine','mine','coal','coal','coal','tower','tower','tower','tower','ruin','ruin','ruin','cross','cross','pass'];
+  const NEUT=['village','village','village','village','village','village','farm','farm','farm','farm','lumber','lumber','lumber','mine','mine','coal','tower','tower','tower','tower','ruin','ruin','ruin','village','farm','village','village','pass'];
   const NEUTALL=[];for(let i=0;i<2.4;i++)NEUTALL.push(...NEUT);
   for(const t of NEUTALL.slice(0,Math.round(NEUT.length*2.4))){
     let best=null,bd=-1;
@@ -2918,7 +2918,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.63 · 15.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.64 · 15.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
