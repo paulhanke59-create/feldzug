@@ -2833,7 +2833,7 @@ function nodeInfoHtml(id){
       if(ok||(kd==='schanze'&&G.fort[id]===undefined))h+='<button data-act="fort" data-v="'+kd+'"'+(ok&&canPay(PL,FORT[kd].cost)?'':' disabled')+'>'+FORT[kd].name+' · '+costText(FORT[kd].cost)+'</button>';
     }
   }
-  if(own===PL&&a&&a.at===id)for(const {to,e} of ADJ[id]){
+  if(own===PL)for(const {to,e} of ADJ[id]){
     if(!passOk(PL,to)||e.type==='road'||roadPending(PL,e))continue;
     const c=roadCost(e);
     h+='<button data-act="road" data-v="'+to+'">Straße nach '+NODES[to].name+' · '+costText(c)+'</button>';
@@ -2927,7 +2927,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.65 · 15.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.66 · 15.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
