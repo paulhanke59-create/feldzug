@@ -880,6 +880,7 @@ function refreshNew(){
 const knownOwner=id=>{const kn=G.known[id];return kn?kn.owner:null};
 
 /* ---------- Versorgung ---------- */
+const RAST_RATE=40;
 function supplyInfo(a){
   if(!a||!a.alive)return{cost:Infinity,rate:0,route:[]};
   const bn=new Set(),be=new Set();
@@ -901,8 +902,10 @@ function supplyInfo(a){
   }
   const route=[];
   if(isFinite(cost)&&anchor){let c=anchor;route.push(c);while(c!==home){c=r.prev[c];if(!c)break;route.push(c)}}
-  const rate=isFinite(cost)?clamp(40-1.5*cost,0,40):0;
-  return{cost,rate,route,anchor};
+  let rate=isFinite(cost)?clamp(40-1.5*cost,0,40):0,rest=false;
+  /* Rast: Ein Heer, das in einem eigenen Ort steht, füllt seine Vorräte dort auf – auch weit weg von der Hauptburg */
+  if(a.at!==null&&!(a.path&&a.path.length)&&G.own[a.at]===a.side&&rate<RAST_RATE&&G.K[a.side].alive){rate=RAST_RATE;rest=true}
+  return{cost,rate,route,anchor,rest};
 }
 
 /* ---------- Bewegung ---------- */
@@ -2880,7 +2883,7 @@ function updateHud(){
   drawMini();
   if(!a){$('aname').textContent='Kein Heer';return}
   const s=a.supc||supplyInfo(a);
-  $('sup').innerHTML=s.rate>0?'<b class="ok">Nachschub +'+f0(s.rate)+'</b>':'<b class="bad">Nachschub gekappt</b>';
+  $('sup').innerHTML=s.rate>0?'<b class="ok">'+(s.rest?'🏕 Rast · ':'')+'Nachschub +'+f0(s.rate)+'</b>':'<b class="bad">Nachschub gekappt</b>';
   $('aname').innerHTML='<b>'+a.name+'</b> · ⚔️ '+strength(a)+' · '+troops(a)+' Mann · '+Math.round(G.K[PL].loy)+' % Zufriedenheit';
   setBar('bTroops',troops(a),Math.max(a.startTroops,troops(a)),'Mann '+troops(a),troops(a)<a.startTroops*0.5);
   setBar('bFood',a.food,foodCap(a),'Brot '+f0(a.food),a.food<foodCap(a)*0.25);
@@ -2927,7 +2930,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.67 · 15.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.68 · 15.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -3179,7 +3182,7 @@ function openHelp(){
   const tips=advice().slice(0,3);
   let h='<h1>Was jetzt?</h1>';
   tips.forEach((t,i)=>{h+='<div class="row"><div>'+(i===0?'<b>'+t.text+'</b>':t.text)+'</div>'+(t.go&&t.go.node?'<button data-i="'+i+'">Hin</button>':'')+'</div>'});
-  h+='<h2>Kurz erklärt</h2><ul><li>Du bist der König. Wirtschaftsrat: Schwerpunkt und Steuern. Militärrat: Heer, Rekruten, Befestigungen, Späher.</li><li>Zum Monatsende liefern deine Orte Ernte und Gold. Rekruten und Bauten sind nach einigen Tagen fertig.</li><li>Dein Heer isst ständig; die grüne Linie zeigt den Nachschub aus der Burg.</li><li>Alle anderen Königreiche sind Feinde. Ziel: Wirtschaft sichern (Brot, Holz, Eisen, Waffen, Gold, 6 Monate lang, ohne Ortsverlust) oder alle fünf anderen Hauptburgen erobern.</li></ul>';
+  h+='<h2>Kurz erklärt</h2><ul><li>Du bist der König. Wirtschaftsrat: Schwerpunkt und Steuern. Militärrat: Heer, Rekruten, Befestigungen, Späher.</li><li>Zum Monatsende liefern deine Orte Ernte und Gold. Rekruten und Bauten sind nach einigen Tagen fertig.</li><li>Dein Heer isst ständig; die grüne Linie zeigt den Nachschub aus der Burg. Weit weg hilft die Rast: Steht das Heer still in einem eigenen Ort, füllt es dort Brot und Munition auf.</li><li>Alle anderen Königreiche sind Feinde. Ziel: Wirtschaft sichern (Brot, Holz, Eisen, Waffen, Gold, 6 Monate lang, ohne Ortsverlust) oder alle fünf anderen Hauptburgen erobern.</li></ul>';
   h+='<button class="big" id="bClose">Schließen</button>';
   showOverlay(h);
   $('card').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{
