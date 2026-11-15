@@ -1,4 +1,4 @@
-# Feldzug – Königreiche (v5)
+# My Kingdom – Königreiche (v5)
 
 Mittelalter-Strategie für Android (HTML5, später APK via Capacitor). Eine Datei: `index.html`.
 
