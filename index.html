@@ -950,6 +950,7 @@ function onArrive(a){
   if(a.dest===n.id)a.dest=null;
 }
 function occupy(a,n){
+  if(G.own[n.id]===PL&&a.side!==PL)G.lostMonth=true;
   const prev=G.own[n.id],side=a.side;
   G.own[n.id]=side;
   if(prev&&prev!==side&&G.grudge[prev])G.grudge[prev][side]=(G.grudge[prev][side]||0)+1;
@@ -1060,6 +1061,20 @@ function econPlan(k,wOverride,prodOverride){
   const pay=men*SOLD;
   gross.pay=pay;gross.keep=keep;gross.men=men;add('gold',-(pay+keep));
   return{alloc,eff,caps,Wk,d,gross,eat,pop,pm,unused:Math.max(0,Wk-(eff.farm+eff.wood+eff.ore+eff.coal+eff.smelt+eff.smith+eff.fletch))};
+}
+/* Wirtschaftsziel: Landwirtschaft, Abbau/Förderung, Produktion, Gold, sichere Grenzen */
+const WEALTH_MONTHS=6;
+function wealthCheck(){
+  const K=G.K[PL],p=econPlan(PL),s=K.stock;
+  const c=[
+    {k:'food',ok:s.food>=600&&p.d.food>=0,t:'Brot: mindestens 600 im Lager und kein Minus'},
+    {k:'wood',ok:s.wood>=300,t:'Holz: mindestens 300'},
+    {k:'iron',ok:s.iron>=150,t:'Eisen: mindestens 150'},
+    {k:'arms',ok:s.arms>=60,t:'Waffen: mindestens 60'},
+    {k:'gold',ok:s.gold>=400&&p.d.gold>=0,t:'Gold: mindestens 400 und kein Minus'},
+    {k:'border',ok:!G.lostMonth&&!K.hunger&&!K.unpaid,t:'Grenzen sicher: kein Ort verloren, kein Hunger, Sold bezahlt'}
+  ];
+  return{c,ok:c.every(x=>x.ok)};
 }
 function applyEconomy(k){
   const K=G.K[k],plan=econPlan(k);
@@ -1300,6 +1315,10 @@ function monthEnd(){
     developNodes(k);
     const plan=applyEconomy(k);
     absorbGarrison(k);
+    if(k===PL&&!G.over){
+      const wc=wealthCheck();G.wealth=wc.ok?(G.wealth||0)+1:0;G.lostMonth=false;
+      if(G.wealth>=WEALTH_MONTHS)G.over={winner:PL,reason:'Dein Reich ist wirtschaftlich gesichert: Felder, Minen und Werkstätten liefern, die Kassen sind voll und die Grenzen halten. Du hast das Land zum Wohlstand geführt!'};
+    }
     if(k===PL){
       playerParts(plan);
       G.report=[
@@ -2898,14 +2917,14 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.61 · 15.11.2026</small></h1>'+
+  showOverlay('<h1>Feldzug <small style="font-size:13px;font-weight:normal">Version 5.62 · 15.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
   '<li><b>Wirtschaftsrat</b>: Schwerpunkt wählen (Waffen, Bögen, Katapulte) und Steuern. Mehr nicht.</li>'+
   '<li><b>Militärrat</b>: Heer, Rekruten, Befestigungen, Späher, Kriegszüge.</li>'+
   '<li>Rekruten und Bauten brauchen einige Tage; den Fortschritt siehst du im Militärrat und am Ort. Das Spiel läuft in Echtzeit (⏸ Pause, 1×/2×/4×); Fenster halten die Zeit an.</li>'+
-  '<li>Ziel: <b>Erobere Land!</b> Besetze Dörfer, Äcker, Minen und Türme und nimm den Feinden ihre Orte ab. Du gewinnst, wenn du die ganze Insel beherrschst, also alle fünf anderen Hauptburgen erobert hast. Fällt deine Hauptburg, ist alles verloren. <b>Katapulte</b> brechen Mauern und Schanzen; ohne mindestens ein Katapult im Heer kann keine Burg gestürmt werden.</li></ul>'+
+  '<li>Ziel: <b>Sichere deine Wirtschaft!</b> Sorge für Brot, Holz, Eisen, Waffen und Gold und halte deine Grenzen sicher. Du gewinnst, wenn alle Vorräte 6 Monate lang stimmen und kein Ort verloren geht. Oder erobere alle fünf anderen Hauptburgen. Fällt deine Hauptburg, ist alles verloren. <b>Katapulte</b> brechen Mauern und Schanzen; ohne mindestens ein Katapult im Heer kann keine Burg gestürmt werden.</li></ul>'+
   '<h2>Schwierigkeit</h2><div class="modes" id="modes">'+['easy','normal','hard','history'].map(m=>'<button data-m="'+m+'" class="'+(MODE===m?'sel':'')+'">'+MODE_INFO[m][0]+'</button>').join('')+'</div><p class="mdesc" id="mdesc"><small>'+MODE_INFO[MODE][1]+'</small></p>'+
   (saveInfo()?'<button class="big main" id="bLoad">Spielstand fortsetzen (Monat '+saveInfo().m+')</button>':'')+'<button class="big main" id="bStart">'+(saveInfo()?'Neues Spiel: ':'')+'Erster Wirtschaftsrat</button><button class="big" id="bStart2">Gleich losspielen</button>');
   $('modes').querySelectorAll('button').forEach(b=>b.onclick=()=>{
@@ -2941,9 +2960,15 @@ function showMonthReport(){
 /* ---------- Wirtschaftsrat ---------- */
 function advisorWeights(){return adviseWeights(PL)}
 const ECO_RES=['gold','food','wood','ore','coal','iron','arms','bows','ammo','cannons'];
+function wealthHtml(){
+  const w=wealthCheck();let h='<div class="icrow wealth"><span class="ic">🏆 <b>'+(G.wealth||0)+'/'+WEALTH_MONTHS+'</b> Monate</span>';
+  const ic={food:RICON.food,wood:RICON.wood,iron:RICON.iron,arms:RICON.arms,gold:RICON.gold,border:'🛡️'};
+  for(const x of w.c)h+='<span class="ic" title="'+x.t+'" style="opacity:'+(x.ok?1:.55)+'">'+ic[x.k]+(x.ok?'✔':'✘')+'</span>';
+  return h+'</div>';
+}
 function ecoForecast(){
   const K=G.K[PL],p=econPlan(PL);
-  let h='<table class="ft"><tr class="fh"><td></td><td>Lager</td><td>＋ Ertrag</td><td>− Verbrauch</td><td>= Saldo</td></tr>';
+  let h=wealthHtml()+'<table class="ft"><tr class="fh"><td></td><td>Lager</td><td>＋ Ertrag</td><td>− Verbrauch</td><td>= Saldo</td></tr>';
   for(const r of ECO_RES){
     const d=p.d[r],g=p.gross[r]||0,use=Math.max(0,g-d);
     if(Math.abs(d)<0.5&&g<0.5&&K.stock[r]<1)continue;
@@ -3118,6 +3143,7 @@ function advice(){
   else if(K.stock.gold>700)add(81,'Viel Gold im Lager. Gib es für Rekruten, Befestigungen oder Straßen aus.');
   if(K.stock.iron>300&&K.stock.arms<60)add(79,'Eisen stapelt sich. Wähle den Schwerpunkt Waffen, damit Schmiede es verarbeiten.');
   if(K.stock.wood>600)add(78,'Holz liegt ungenutzt. Baue Straßen oder Befestigungen.');
+  {const w=wealthCheck();const bad=w.c.filter(x=>!x.ok);if(bad.length&&bad.length<=2&&(G.wealth||0)<WEALTH_MONTHS)add(72,'Zum Wohlstandssieg fehlt noch: '+bad.map(x=>x.t.split(':')[0]).join(', ')+'.')}
   if(plan.d.food<0)add(94,'Das Reich verbraucht mehr Brot als es erntet. Besetze Äcker, um mehr zu ernten.');
   if(K.stock.food<plan.eat*0.3)add(99,'Das Brot im Lager ist fast leer – Hungersnot droht!');
   if(K.loy<45)add(88,'Das Volk ist unzufrieden. Senke die Steuern.');
@@ -3140,7 +3166,7 @@ function openHelp(){
   const tips=advice().slice(0,3);
   let h='<h1>Was jetzt?</h1>';
   tips.forEach((t,i)=>{h+='<div class="row"><div>'+(i===0?'<b>'+t.text+'</b>':t.text)+'</div>'+(t.go&&t.go.node?'<button data-i="'+i+'">Hin</button>':'')+'</div>'});
-  h+='<h2>Kurz erklärt</h2><ul><li>Du bist der König. Wirtschaftsrat: Schwerpunkt und Steuern. Militärrat: Heer, Rekruten, Befestigungen, Späher.</li><li>Zum Monatsende liefern deine Orte Ernte und Gold. Rekruten und Bauten sind nach einigen Tagen fertig.</li><li>Dein Heer isst ständig; die grüne Linie zeigt den Nachschub aus der Burg.</li><li>Alle anderen Königreiche sind Feinde. Ziel: die ganze Insel beherrschen. Erobere dafür alle fünf anderen Hauptburgen.</li></ul>';
+  h+='<h2>Kurz erklärt</h2><ul><li>Du bist der König. Wirtschaftsrat: Schwerpunkt und Steuern. Militärrat: Heer, Rekruten, Befestigungen, Späher.</li><li>Zum Monatsende liefern deine Orte Ernte und Gold. Rekruten und Bauten sind nach einigen Tagen fertig.</li><li>Dein Heer isst ständig; die grüne Linie zeigt den Nachschub aus der Burg.</li><li>Alle anderen Königreiche sind Feinde. Ziel: Wirtschaft sichern (Brot, Holz, Eisen, Waffen, Gold, 6 Monate lang, ohne Ortsverlust) oder alle fünf anderen Hauptburgen erobern.</li></ul>';
   h+='<button class="big" id="bClose">Schließen</button>';
   showOverlay(h);
   $('card').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{
