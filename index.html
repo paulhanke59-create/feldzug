@@ -662,7 +662,7 @@ const CAPN={castle:{craft:160},village:{farm:40,craft:40,wood:10},farm:{farm:200
 const PROFS=['farm','wood','ore','coal','smelt','smith','fletch'];
 const PLAB={farm:'Bauern',wood:'Holzfäller',ore:'Bergleute (Erz)',coal:'Köhler (Kohle)',smelt:'Hüttenleute (Eisen)',smith:'Schmiede',fletch:'Bogner (Bögen, Munition)'};
 const PRATE={farm:3.2,wood:2.4,ore:1.8,coal:1.8};
-const TAXM=[0.55,1,1.6], TAX_LAB=['Niedrig','Normal','Hoch'], TAX_TARGET=[95,78,45];
+const TAXM=[0.55,1,1.6], TAX_LAB=['Niedrig','Ausgewogen','Hoch'], TAX_TARGET=[95,78,45];
 const RES_KEYS=['food','wood','ore','coal','iron','gold','arms','bows','ammo','cannons'];
 const RECR={
   inf:  {n:20,cost:{arms:20,gold:30}},
@@ -2969,7 +2969,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.73 · 15.11.2026</small></h1>'+
+  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.74 · 15.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -3029,24 +3029,28 @@ function ecoForecast(){
   return h;
 }
 const FOCI=[['balanced','Ausgewogen','Von allem etwas'],['arms','Waffen','Mehr Schwerter und Eisen für Fußvolk und Reiter'],['bows','Bögen & Munition','Für Bogenschützen und Nachschub an Pfeilen'],['cannons','Katapulte','Schmiede bauen Belagerungs-Katapulte aus Holz und Eisen. Sie schwächen Mauern und Befestigungen des Feindes.']];
-function sliderRow(id,l,r,val,min,max,txt){
-  return '<div class="rrow"><div class="rtop"><span>'+l+'</span><span class="rval" id="'+id+'_v">'+txt+'</span><span>'+r+'</span></div><input type="range" class="rs" id="'+id+'" min="'+min+'" max="'+max+'" step="1" value="'+val+'"></div>';
+function sliderRow(id,title,l,r,val,min,max,txt){
+  return '<div class="rrow"><div class="rtop"><b>'+title+'</b><span class="rval" id="'+id+'_v">'+txt+'</span></div><input type="range" class="rs" id="'+id+'" min="'+min+'" max="'+max+'" step="1" value="'+val+'"><div class="rtop"><small>'+l+'</small><small>'+r+'</small></div></div>';
 }
 const focTxt=i=>FOCI[i][1],taxTxt=i=>TAX_LAB[i];
+const pctTxt=v=>'<b>'+v*10+' %</b>';
 function sliderHtml(){
-  const K=G.K[PL],al=K.alloc===undefined?50:K.alloc/10,fi=Math.max(0,FOCI.findIndex(f=>f[0]===K.focus));
+  const K=G.K[PL],al=(K.alloc===undefined?50:K.alloc)/10,fi=Math.max(0,FOCI.findIndex(f=>f[0]===K.focus));
   let h='<h2>Stellschrauben</h2>';
-  h+=sliderRow('slAl','⚔️ Heer','🏗️ Bau',al,0,10,'<b>'+(100-al*10)+'</b>:<b>'+al*10+'</b>');
-  h+=sliderRow('slTax','🪙 wenig','🪙 viel',K.tax,0,2,'<b>'+taxTxt(K.tax)+'</b> · 😊 '+Math.round(K.loy)+'%');
-  h+=sliderRow('slFoc','⚖️','🗡️',fi,0,FOCI.length-1,'<b>'+focTxt(fi)+'</b>');
+  h+=sliderRow('slTax','🪙 Steuereinnahmen','Niedrig','Hoch',K.tax,0,2,'<b>'+taxTxt(K.tax)+'</b> · 😊 '+Math.round(K.loy)+' %');
+  h+=sliderRow('slAl','⚔️ Armee','weniger','mehr',al,0,10,pctTxt(al));
+  h+=sliderRow('slBau','🏗️ Bau','weniger','mehr',10-al,0,10,pctTxt(10-al));
+  h+=sliderRow('slFoc','⚖️ Schwerpunkt','Ausgewogen','Katapulte',fi,0,FOCI.length-1,'<b>'+focTxt(fi)+'</b>');
   h+='<h3>Erwartet bis Monatsende</h3><div id="fc">'+ecoForecast()+'</div>';
   return h;
 }
 function sliderBind(){
   const K=G.K[PL],fc=()=>{K.w=focusWeights(PL,K.focus);planT=0;$('fc').innerHTML=ecoForecast()};
-  const al=$('slAl'),tx=$('slTax'),fo=$('slFoc');
-  al.oninput=()=>{K.alloc=al.value*10;$('slAl_v').innerHTML='<b>'+(100-al.value*10)+'</b>:<b>'+al.value*10+'</b>';fc()};
-  tx.oninput=()=>{K.tax=Number(tx.value);$('slTax_v').innerHTML='<b>'+taxTxt(K.tax)+'</b> · 😊 '+Math.round(K.loy)+'%';fc()};
+  const al=$('slAl'),bau=$('slBau'),tx=$('slTax'),fo=$('slFoc');
+  const setAl=v=>{K.alloc=v*10;al.value=v;bau.value=10-v;$('slAl_v').innerHTML=pctTxt(v);$('slBau_v').innerHTML=pctTxt(10-v);fc()};
+  al.oninput=()=>setAl(Number(al.value));
+  bau.oninput=()=>setAl(10-Number(bau.value));
+  tx.oninput=()=>{K.tax=Number(tx.value);$('slTax_v').innerHTML='<b>'+taxTxt(K.tax)+'</b> · 😊 '+Math.round(K.loy)+' %';fc()};
   fo.oninput=()=>{K.focus=FOCI[fo.value][0];$('slFoc_v').innerHTML='<b>'+focTxt(fo.value)+'</b>';fc()};
 }
 
@@ -3113,7 +3117,7 @@ function milBind(){
   $('card').querySelectorAll('button[data-sel]').forEach(b=>b.onclick=()=>{G.sel=Number(b.dataset.sel);centerOn(selArmy());openCouncil()});
   {const sr=$('card').querySelector('.selrow');if(sr&&sr.scrollIntoView)sr.scrollIntoView({block:'nearest'})}
   $('card').querySelectorAll('button[data-a]').forEach(b=>b.onclick=()=>{$('card')._acts[Number(b.dataset.a)].fn();openCouncil()});
-  $('card').querySelectorAll('input.rs').forEach(s=>{
+  $('card').querySelectorAll('input.rs[data-t]').forEach(s=>{
     const t=s.dataset.t;
     s.oninput=()=>{const v=$('rv_'+t);if(v)v.innerHTML='<b>'+s.value+'</b> × '+RECR[t].n+' = '+(Number(s.value)*RECR[t].n)};
     s.onchange=()=>{
