@@ -2974,7 +2974,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.77 · 15.11.2026</small></h1>'+
+  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.78 · 15.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -3101,7 +3101,7 @@ function milHtml(){
   for(const t of UK){
     const r=RECR[t],n=K.orders.rec[t];
     const qi=K.orders.rq.filter(x=>x.t===t),first=qi[0];
-    let aff=99;for(const k2 in r.cost)if(r.cost[k2]>0)aff=Math.min(aff,Math.floor((K.stock[k2]||0)/r.cost[k2]));
+    let aff=99;for(const k2 in r.cost)if(r.cost[k2]>0)aff=Math.min(aff,Math.floor((k2==='gold'?potOf(PL,'mil'):(K.stock[k2]||0))/r.cost[k2]));
     const mx=Math.min(20,n+aff);
     h+='<div class="rrow'+(mx<1?' off':'')+'"><div class="rtop"><span><b>'+r.n+' '+UNAME[t]+'</b> <small>⏳'+REC_DAYS[t]+'</small></span><span class="rval" id="rv_'+t+'"><b>'+n+'</b> × '+r.n+' = '+(n*r.n)+'</span></div><input type="range" class="rs" min="0" max="'+Math.max(mx,1)+'" step="1" value="'+n+'" data-t="'+t+'"'+(mx<1?' disabled':'')+'><div class="rsub"><span class="icrow">'+costText(r.cost)+'</span>'+(first?'<small>⏳ '+daysLeft(first)+'</small>'+PB(progOf(first)):'')+'</div></div>';
   }
