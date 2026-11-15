@@ -408,8 +408,7 @@ function genWorld(seed){
     let type=terrainAt(mid.x,mid.y);
     const same=A.owner&&A.owner===B.owner;
     if(same&&(type==='mountain'||type==='swamp'))type='hills';
-    if(same&&d<360*SC&&(A.type==='castle'||B.type==='castle'||rnd()<0.5))type='road';
-    else if(!same&&d<260*SC&&rnd()<0.12)type='road';
+    rnd();rnd();
     let ford=0;
     if(type!=='road'){
       for(const rvp of RIVERS){
@@ -1125,7 +1124,7 @@ function moodInfo(id){
   if(G.fort[id]&&G.fort[id].owner===k)add('Befestigung schützt',8);
   if(G.routes.some(x=>x.a===id||x.b===id)&&k===PL)add('Handelsroute',8);
   let own=0;for(const {to,e} of ADJ[id])if(G.own[to]===k&&e.type==='road')own++;
-  if(own>=2)add('gute Straßenanbindung',6);else if(own===0)add('abgelegen',-10);
+  if(own>=2)add('gute Straßenanbindung',6);
   if(K.hunger>0)add('Hunger im Reich',-20);
   if(G.armies.some(a=>a.alive&&a.side!==k&&a.at===id))add('Feind im Ort',-25);
   else if(ADJ[id].some(({to})=>G.armies.some(a=>a.alive&&a.side!==k&&a.at===to)))add('Feind in der Nähe',-8);
@@ -2970,7 +2969,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.84 · 15.11.2026</small></h1>'+
+  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.85 · 15.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
