@@ -1184,7 +1184,7 @@ function sendGarrison(k,node,n){
 function applyBuild(k,b){
   if(b.kind==='strasse'){
     const e=EMAP[b.edge];
-    if(e&&passOk(k,e.a)&&passOk(k,e.b)){applyEdge(e,'road',e.ford?e.fordT:0);if(k===PL)logMsg('Straße '+NODES[e.a].name+' – '+NODES[e.b].name+' ist fertig.','good')}
+    if(e&&passOk(k,e.a)&&passOk(k,e.b)){applyEdge(e,'road',e.ford?e.fordT:0);if(k===PL){logMsg('Straße '+NODES[e.a].name+' – '+NODES[e.b].name+' ist fertig.','good');autoTrade()}}
     return;
   }
   if(G.own[b.node]!==k)return;
@@ -1333,6 +1333,7 @@ function playerParts(plan){
 }
 function monthEnd(){
   G.nextMonth+=MONTH_S;
+  autoTrade();
   const di=dateInfo(G.time);
   for(const k of aliveKings()){
     G.K[k].w=focusWeights(k,G.K[k].focus);
@@ -1374,6 +1375,17 @@ function addRoute(a,b){
   logMsg('Handelsroute '+NODES[a].name+' – '+NODES[b].name+' eröffnet.','good');
   return true;
 }
+/* Sobald eine Straße einen Ort mit der Hauptburg verbindet, fährt dort automatisch ein Händlerwagen */
+function autoTrade(){
+  const cap=KINGS[PL].capital,reach=roadReach(PL);
+  for(const id of reach){
+    if(id===cap||G.own[id]!==PL||!GOODS[NODES[id].type])continue;
+    if(G.routes.some(r=>(r.a===id&&r.b===cap)||(r.a===cap&&r.b===id)))continue;
+    const pr=pathFromTo(id,cap);if(!pr)continue;
+    G.routes.push({id:G.nextId++,a:id,b:cap,nodes:[id].concat(pr.path),k:0,p:0,cost:pr.cost,cycle:pr.cost/0.32,origin:id});
+    logMsg('Händler fahren jetzt von '+NODES[id].name+' zur Burg.','good');
+  }
+}
 function removeRoute(id,msg){const i=G.routes.findIndex(r=>r.id===id);if(i<0)return;G.routes.splice(i,1);if(msg)logMsg(msg,'bad')}
 function cartPos(rt){return edgePoint(EMAP[rt.nodes[rt.k]+'|'+rt.nodes[rt.k+1]],rt.nodes[rt.k],rt.p)}
 const routeActive=rt=>G.own[rt.a]===PL&&G.own[rt.b]===PL;
@@ -1388,10 +1400,8 @@ function stepCarts(dt){
         mp-=need;rt.k++;rt.p=0;
         if(rt.k>=rt.nodes.length-1){
           const dest=rt.nodes[rt.nodes.length-1],orig=rt.nodes[0];
-          const pf=routeProfit(rt);
-          G.K[PL].stock.gold+=pf;G.pend.gold+=pf;spawnParts('gold',pf,dest,0);
-          const gd=GOODS[NODES[orig].type]||{};
-          for(const r in gd){G.K[PL].stock[r]+=gd[r];if(PENDMAP[r])G.pend[r]+=gd[r];spawnParts(r,gd[r],dest,0.3)}
+          const gd=GOODS[NODES[orig].type]||{},lf=lvlF(orig);
+          for(const r in gd){const am=Math.round(gd[r]*lf);G.K[PL].stock[r]+=am;if(PENDMAP[r])G.pend[r]+=am;spawnParts(r,am,dest,0.3)}
           rt.nodes.reverse();rt.k=0;rt.p=0;
         }
       }else{rt.p+=mp/e.move;mp=0}
@@ -2881,7 +2891,6 @@ function nodeInfoHtml(id){
     h+='<button data-act="road" data-v="'+to+'">Straße nach '+NODES[to].name+' · '+costText(c)+'</button>';
   }
   if(own===PL&&buildAllowed(PL,'ausbau',id))h+='<button data-act="fort" data-v="ausbau"'+(canPay(PL,FORT.ausbau.cost,'bau')?'':' disabled')+'>Dorf fördern · '+costText(FORT.ausbau.cost)+'</button>';
-  if(own===PL&&(isEco(n)||n.type==='castle'))h+='<button data-act="trade">Handel</button>';
   h+='<button data-act="info">Dorfinfo</button>';
   h+='</div>';
   return h;
@@ -2969,7 +2978,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.87 · 23.11.2026</small></h1>'+
+  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.88 · 23.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
