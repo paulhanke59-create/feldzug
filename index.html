@@ -1572,14 +1572,36 @@ function collisions(){
     if((G.cool[ck(a,b)]||0)>G.time)continue;
     if(dist(armyPos(a),armyPos(b))<COLLIDE_DIST){
       /* Ein Heer hinter den Burgmauern ist ohne Katapulte unangreifbar */
-      if(walled(a,b)||walled(b,a))continue;
+      if(walled(a,b)){wallBattle(a,b);return}
+      if(walled(b,a)){wallBattle(b,a);return}
       resolveBattle(a,b);return;
     }
   }
 }
 function walled(def,att){
-  if(def.at===null||NODES[def.at].type!=='castle'||G.own[def.at]!==def.side)return false;
-  return !G.armies.some(z=>z.alive&&z.side===att.side&&z.units.can>0&&dist(armyPos(z),armyPos(att))<COLLIDE_DIST*1.3);
+  return def.at!==null&&NODES[def.at].type==='castle'&&G.own[def.at]===def.side;
+}
+/* Belagerung: Je mehr Katapulte, desto härter trifft der Angreifer die Burgbesatzung. Ohne Katapulte fallen nur einzelne Krieger. */
+function wallBattle(def,att){
+  const site=armyPos(def);
+  const near=side=>sideArmies(side).filter(z=>dist(armyPos(z),site)<COLLIDE_DIST*1.3&&(side===att.side||z.at===def.at));
+  const PA=near(att.side),PD=near(def.side);
+  if(!PA.length||!PD.length)return;
+  const sg=siegeShare(PA),f=0.08+0.92*(sg/0.7);
+  let pa=0,pd=0;for(const z of PA)pa+=armyPower(z);for(const z of PD)pd+=armyPower(z)*1.3;
+  const r=pa*f/Math.max(1,pd),mk=(0.9+G.rnd()*0.2);
+  const dD=Math.min(0.4,(0.008+0.22*r)*mk),dA=0.03*mk;
+  const bD=PD.reduce((s,z)=>s+troops(z),0),bA=PA.reduce((s,z)=>s+troops(z),0);
+  for(const z of PD)applyLoss(z,dD);
+  for(const z of PA)applyLoss(z,dA);
+  const lD=bD-PD.reduce((s,z)=>s+troops(z),0),lA=bA-PA.reduce((s,z)=>s+troops(z),0);
+  for(const p of PA)for(const q of PD)G.cool[ck(p,q)]=G.time+4;
+  G.fx.push({type:'clash',x:site.x,y:site.y,t:0,dur:2});
+  if(att.side===PL||def.side===PL){
+    const me=att.side===PL?lA:lD,he=att.side===PL?lD:lA;
+    logMsg('Belagerung von '+NODES[def.at].name+(sg>0?' (Katapulte!)':'')+': Verluste du '+me+', Gegner '+he+'.','battle');
+  }
+  for(const z of PA.concat(PD))checkDestroyed(z);
 }
 
 /* ---------- Gegner-KI ---------- */
@@ -3001,7 +3023,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.93 · 23.11.2026</small></h1>'+
+  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.94 · 23.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
