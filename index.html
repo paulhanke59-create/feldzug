@@ -1570,8 +1570,16 @@ function collisions(){
     const a=L[i],b=L[j];
     if(a.side===b.side)continue;
     if((G.cool[ck(a,b)]||0)>G.time)continue;
-    if(dist(armyPos(a),armyPos(b))<COLLIDE_DIST){resolveBattle(a,b);return}
+    if(dist(armyPos(a),armyPos(b))<COLLIDE_DIST){
+      /* Ein Heer hinter den Burgmauern ist ohne Katapulte unangreifbar */
+      if(walled(a,b)||walled(b,a))continue;
+      resolveBattle(a,b);return;
+    }
   }
+}
+function walled(def,att){
+  if(def.at===null||NODES[def.at].type!=='castle'||G.own[def.at]!==def.side)return false;
+  return !G.armies.some(z=>z.alive&&z.side===att.side&&z.units.can>0&&dist(armyPos(z),armyPos(att))<COLLIDE_DIST*1.3);
 }
 
 /* ---------- Gegner-KI ---------- */
@@ -2993,7 +3001,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.92 · 23.11.2026</small></h1>'+
+  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.93 · 23.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
