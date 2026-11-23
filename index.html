@@ -706,6 +706,13 @@ const NEUTRAL_T=['cross','ruin','pass','bridge'];
 const passOk=(k,id)=>G.own[id]===k||(G.own[id]==null&&NEUTRAL_T.indexOf(NODES[id].type)>=0);
 const owned=k=>Object.keys(NODES).filter(id=>G.own[id]===k);
 const lvlF=id=>(NODES[id].type==='castle'?1:0.6+0.2*(G.lvl[id]||1))*(G.pf[id]||1);
+/* Steuern pro Monat, die ein Ort abwirft (Gold) */
+function taxOf(id){
+  const k=G.own[id];if(!k||!G.K[k])return 0;
+  const K=G.K[k],tm=k===PL?TAXM[K.tax]:1,loy=k===PL?K.loy:75;
+  return POPN[NODES[id].type]?Math.round(popN(id)*0.055*tm*(loy/100)*10)/10:0;
+}
+const coinsOf=id=>clamp(Math.ceil(taxOf(id)/5),1,6);
 const popN=id=>Math.round((POPN[NODES[id].type]||0)*lvlF(id));
 const capsOf=id=>{const cn=CAPN[NODES[id].type],o={};if(cn)for(const x in cn)o[x]=Math.round(cn[x]*lvlF(id));return o};
 const popOf=k=>{let s=0;for(const id of owned(k))s+=(POPN[NODES[id].type]||0)*lvlF(id);return Math.round(s)};
@@ -2675,6 +2682,14 @@ function render(){
     let name=n.name;
     if(kn.owner===PL&&G.lvl[id])name+=' ★'+G.lvl[id];
     haloText(name,p.x,p.y+off+4,big?13:11.5,nodeLabelColor(id),'center',true);
+    if(kn.owner&&view.s>=0.45&&POPN[n.type]){
+      const nc=coinsOf(id),cy=p.y+off+17,r=3.1,gap=7.4,x0=p.x-(nc-1)*gap/2;
+      for(let i=0;i<nc;i++){
+        ctx.beginPath();ctx.arc(x0+i*gap,cy,r,0,6.283);ctx.fillStyle=kn.owner===PL?'#E8B93C':'#C9B98A';ctx.fill();
+        ctx.lineWidth=1;ctx.strokeStyle='rgba(70,45,10,.9)';ctx.stroke();
+        ctx.beginPath();ctx.arc(x0+i*gap-0.6,cy-0.8,r*0.45,0,6.283);ctx.fillStyle='rgba(255,246,200,.7)';ctx.fill();
+      }
+    }
   }
   const sa2=sa;
   if(sa2&&sa2.dest&&sa2.path.length){
@@ -2978,12 +2993,12 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.88 · 23.11.2026</small></h1>'+
+  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.89 · 23.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
   '<li><b>Reichsrat</b>: Haushalt (Heer/Bau), Steuern, Schwerpunkt, Heer, Rekruten, Befestigungen.</li>'+
-  '<li>Rekruten und Bauten brauchen einige Tage; den Fortschritt siehst du im Militärrat und am Ort. Das Spiel läuft in Echtzeit (⏸ Pause, 1×/2×/4×); Fenster halten die Zeit an.</li>'+
+  '<li>Rekruten und Bauten brauchen einige Tage; den Fortschritt siehst du im Reichsrat und am Ort. Das Spiel läuft in Echtzeit (⏸ Pause, 1×/2×/4×); Fenster halten die Zeit an.</li>'+
   '<li>Ziel: <b>Sichere deine Wirtschaft!</b> Sorge für Brot, Holz, Eisen, Waffen und Gold und halte deine Grenzen sicher. Du gewinnst, wenn alle Vorräte 6 Monate lang stimmen und kein Ort verloren geht. Oder erobere alle fünf anderen Hauptburgen. Fällt deine Hauptburg, ist alles verloren. <b>Katapulte</b> brechen Mauern und Wachtürme; ohne mindestens ein Katapult im Heer kann keine Burg gestürmt werden.</li></ul>'+
   (saveInfo()?'<button class="big main" id="bLoad">Spielstand fortsetzen (Monat '+saveInfo().m+')</button>':'')+'<button class="big main" id="bStart2">Neues Spiel starten</button>');
   if($('bLoad'))$('bLoad').onclick=()=>{if(!loadGame()){$('bLoad').textContent='Laden fehlgeschlagen'}};
@@ -3010,7 +3025,7 @@ function showMonthReport(){
   $('bE').onclick=openEco;$('bClose').onclick=closeSheet;
 }
 
-/* ---------- Wirtschaftsrat ---------- */
+/* ---------- Reichsrat ---------- */
 function advisorWeights(){return adviseWeights(PL)}
 const ECO_RES=['gold','food','wood','ore','coal','iron','arms','bows','ammo','cannons'];
 const NEED={food:600,wood:300,iron:150,arms:60,gold:400};
@@ -3068,7 +3083,7 @@ function sliderBind(){
   tx.oninput=()=>{K.tax=Number(tx.value);$('slTax_v').innerHTML='<b>'+taxTxt(K.tax)+'</b> · 😊 '+Math.round(K.loy)+' %';fc()};
 }
 
-/* ---------- Militärrat ---------- */
+/* ---------- Reichsrat ---------- */
 const PB=(f)=>'<div class="pb"><i style="width:'+Math.round(f*100)+'%"></i></div>';
 const UNAME={inf:'Fußvolk',bow:'Bogenschützen',cav:'Reiter',can:'Katapulte',scout:'Späher'};
 function dirHints(){
@@ -3188,6 +3203,7 @@ function openNodeInfo(id){
     const g=G.vgar[id]||0;
     add('Dorfwache',own===PL?(G.vgot[id]?G.vgot[id]+' Mann, bereits bei deinem Heer':'bereits bei deinem Heer'):own?'vermutlich ein paar Männer':(g>0?'ein paar Männer, wohl nicht viele':'keine mehr'));
   }
+  if(own&&POPN[n.type]){const tx=taxOf(id);add('Steuern pro Monat',own===PL?'🪙 '+tx.toFixed(1).replace('.',','):'ca. 🪙 '+Math.round(tx/5)*5+' (geschätzt)')}
   if(own&&G.lvl[id]){
     if(own!==PL)add('Wohlstand',G.lvl[id]>=4?'wohl wohlhabend':G.lvl[id]>=3?'durchschnittlich':'eher bescheiden');
     else add('Entwicklungsstufe',G.lvl[id]+' von 5');
@@ -3235,10 +3251,10 @@ function advice(){
   if(K.stock.food<plan.eat*0.3)add(99,'Das Brot im Lager ist fast leer – Hungersnot droht!');
   if(K.loy<45)add(88,'Das Volk ist unzufrieden. Senke die Steuern.');
   const scouts=sideArmies(PL).reduce((s,x)=>s+x.units.scout,0);
-  if(scouts===0&&K.orders.rec.scout===0&&exploredPct()<12)add(86,'Du weißt kaum etwas über das Land. Bestelle im Militärrat Späher.');
+  if(scouts===0&&K.orders.rec.scout===0&&exploredPct()<12)add(86,'Du weißt kaum etwas über das Land. Bestelle im Reichsrat Späher.');
   const rc=UK.reduce((s,u)=>s+K.orders.rec[u],0);
-  if(rc===0&&K.stock.gold>150)add(70,'Du hast Gold übrig. Bestelle im Militärrat Rekruten oder baue Befestigungen.');
-  if(K.stock.arms<20&&K.stock.gold>100)add(65,'Waffen sind knapp. Wähle im Wirtschaftsrat den Schwerpunkt Waffen.');
+  if(rc===0&&K.stock.gold>150)add(70,'Du hast Gold übrig. Bestelle im Reichsrat Rekruten oder baue Befestigungen.');
+  if(K.stock.arms<20&&K.stock.gold>100)add(65,'Waffen sind knapp. Wähle im Reichsrat den Schwerpunkt Waffen.');
   if(a&&a.at!==null&&!a.path.length&&G.time<20)add(85,'Tippe einen Ort an und wähle „Hierher marschieren“, um Land zu erkunden und Orte zu besetzen.');
   if(a&&a.at!==null&&!a.path.length){
     const r=dijkstra(a.at,'move');let best=null,bd=Infinity;
@@ -3253,7 +3269,7 @@ function openHelp(){
   const tips=advice().slice(0,3);
   let h='<h1>Was jetzt?</h1>';
   tips.forEach((t,i)=>{h+='<div class="row"><div>'+(i===0?'<b>'+t.text+'</b>':t.text)+'</div>'+(t.go&&t.go.node?'<button data-i="'+i+'">Hin</button>':'')+'</div>'});
-  h+='<h2>Kurz erklärt</h2><ul><li>Du bist der König. Wirtschaftsrat: Schwerpunkt und Steuern. Militärrat: Heer, Rekruten, Befestigungen, Späher.</li><li>Zum Monatsende liefern deine Orte Ernte und Gold. Rekruten und Bauten sind nach einigen Tagen fertig.</li><li>Dein Heer isst ständig; die grüne Linie zeigt den Nachschub aus der Burg. Weit weg hilft die Rast: Steht das Heer still in einem eigenen Ort, füllt es dort Brot und Munition auf.</li><li>Alle anderen Königreiche sind Feinde. Ziel: Wirtschaft sichern (Brot, Holz, Eisen, Waffen, Gold, 6 Monate lang, ohne Ortsverlust) oder alle fünf anderen Hauptburgen erobern.</li></ul>';
+  h+='<h2>Kurz erklärt</h2><ul><li>Du bist der König. Reichsrat: Schwerpunkt und Steuern. Reichsrat: Heer, Rekruten, Befestigungen, Späher.</li><li>Zum Monatsende liefern deine Orte Ernte und Gold. Rekruten und Bauten sind nach einigen Tagen fertig.</li><li>Dein Heer isst ständig; die grüne Linie zeigt den Nachschub aus der Burg. Weit weg hilft die Rast: Steht das Heer still in einem eigenen Ort, füllt es dort Brot und Munition auf.</li><li>Alle anderen Königreiche sind Feinde. Ziel: Wirtschaft sichern (Brot, Holz, Eisen, Waffen, Gold, 6 Monate lang, ohne Ortsverlust) oder alle fünf anderen Hauptburgen erobern.</li></ul>';
   h+='<button class="big" id="bClose">Schließen</button>';
   showOverlay(h);
   $('card').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{
