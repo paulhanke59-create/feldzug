@@ -2946,7 +2946,7 @@ function updateHud(){
   drawMini();
   if(!a){$('aname').textContent='Kein Heer';return}
   const s=a.supc||supplyInfo(a);
-  $('sup').innerHTML=s.rate>0?'<b class="ok">'+(s.rest?'🏕 Rast · ':'')+'Nachschub +'+f0(s.rate)+'</b>':'<b class="bad">Nachschub gekappt</b>';
+  $('sup').innerHTML=s.rate>0?'<b class="ok">'+(s.rest?'🏕 Rast · ':'')+'Nachschub +'+f0(s.rate)+'</b>':'<b class="bad">Nachschub gekappt · '+(a.food>0?'Brot für ca. '+Math.max(1,Math.floor(a.food/(troops(a)/(60*TURN_S))/DAY_S))+' Tage':'Hunger!')+'</b>';
   $('aname').innerHTML='<b>'+a.name+'</b> · ⚔️ '+strength(a)+' · '+troops(a)+' Mann · '+Math.round(G.K[PL].loy)+' % Zufriedenheit';
   setBar('bTroops',troops(a),Math.max(a.startTroops,troops(a)),'Mann '+troops(a),troops(a)<a.startTroops*0.5);
   setBar('bFood',a.food,foodCap(a),'Brot '+f0(a.food),a.food<foodCap(a)*0.25);
@@ -2993,7 +2993,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.90 · 23.11.2026</small></h1>'+
+  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.91 · 23.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -3239,7 +3239,7 @@ function advice(){
       else add(98,'Feindliches Heer ('+KINGS[nearE.b.side].name+', Stärke ca. '+Math.round(en/10)*10+' gegen deine '+me+') in der Nähe – besser zurück in die Burg.',{node:KINGS[PL].capital});
     }
     if(a.starving||a.food<fc*0.25)add(97,'Das Brot geht aus! Zurück zur Burg.',{node:KINGS[PL].capital});
-    else if(sup.rate<=0)add(96,'Die Nachschublinie ist gekappt: zu weit von der Hauptburg oder ein Feind im Weg. Kehre um, baue Straßen oder räume den Weg frei.');
+    else if(sup.rate<=0)add(96,'Die Nachschublinie ist gekappt (Brot noch für ca. '+Math.max(1,Math.floor(a.food/(troops(a)/(60*TURN_S))/DAY_S))+' Tage): zu weit von der Hauptburg oder ein Feind im Weg. Kehre um, baue Straßen oder räume den Weg frei.');
   }
   const th=capitalThreat();
   if(th)add(100,'Feind ('+KINGS[th.b.side].name+', Stärke ca. '+Math.round(strength(th.b)/10)*10+') nur '+th.h+(th.h===1?' Dorf':' Dörfer')+' vor deiner Hauptburg! Heer zurückrufen.',{node:KINGS[PL].capital});
