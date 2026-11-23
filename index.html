@@ -718,7 +718,7 @@ const workforce=k=>Math.max(0,Math.round(popOf(k)*0.65-soldiersOf(k)));
 /* Haushalt: Das Gold teilt sich in eine Heer-Kasse und eine Bau-Kasse (Straßen, Dorfausbau, Handel) */
 const potBau=k=>{const K=G.K[k];return clamp(K.pb===undefined?K.stock.gold*0.5:K.pb,0,K.stock.gold)};
 const potOf=(k,cat)=>cat==='bau'?potBau(k):G.K[k].stock.gold-potBau(k);
-function canPay(k,c,cat){const s=G.K[k].stock;for(const r in c)if(s[r]<c[r]-1e-9)return false;if(cat&&c.gold&&potOf(k,cat)<c.gold-1e-9)return false;return true}
+function canPay(k,c,cat){const s=G.K[k].stock;for(const r in c)if(s[r]<c[r]-1e-9)return false;return true}
 function pay(k,c,cat){const K=G.K[k],s=K.stock;K.pb=potBau(k);for(const r in c)s[r]-=c[r];if(cat==='bau'&&c.gold)K.pb-=c.gold;K.pb=clamp(K.pb,0,s.gold)}
 function refund(k,c,cat){const K=G.K[k],s=K.stock;K.pb=potBau(k);for(const r in c)s[r]+=c[r];if(cat==='bau'&&c.gold)K.pb+=c.gold;K.pb=clamp(K.pb,0,s.gold)}
 const RICON={food:'🍞',wood:'🪵',ore:'⛰️',coal:'⚫',iron:'🔩',gold:'🪙',arms:'⚔️',bows:'🏹',ammo:'🪶',cannons:'🪨'};
@@ -2969,7 +2969,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.86 · 20.11.2026</small></h1>'+
+  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.87 · 23.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -3103,7 +3103,7 @@ function milHtml(){
   for(const t of UK){
     const r=RECR[t],n=K.orders.rec[t];
     const qi=K.orders.rq.filter(x=>x.t===t),first=qi[0];
-    let aff=99;for(const k2 in r.cost)if(r.cost[k2]>0)aff=Math.min(aff,Math.floor((k2==='gold'?potOf(PL,'mil'):(K.stock[k2]||0))/r.cost[k2]));
+    let aff=99;for(const k2 in r.cost)if(r.cost[k2]>0)aff=Math.min(aff,Math.floor((K.stock[k2]||0)/r.cost[k2]));
     const mx=Math.min(20,n+aff);
     h+='<div class="rrow'+(mx<1?' off':'')+'"><div class="rtop"><span><b>'+r.n+' '+UNAME[t]+'</b> <small>⏳'+REC_DAYS[t]+'</small></span><span class="rval" id="rv_'+t+'"><b>'+n+'</b> × '+r.n+' = '+(n*r.n)+'</span></div><input type="range" class="rs" min="0" max="'+Math.max(mx,1)+'" step="1" value="'+n+'" data-t="'+t+'"'+(mx<1?' disabled':'')+'><div class="rsub"><span class="icrow">'+costText(r.cost)+'</span>'+(first?'<small>⏳ '+daysLeft(first)+'</small>'+PB(progOf(first)):'')+'</div></div>';
   }
@@ -3152,9 +3152,7 @@ function openTrade(id){
   let h='<h1>Handel</h1><p><small>Ein Händlerwagen pendelt dauerhaft zwischen zwei deiner Orte und bringt bei jeder Ankunft Gold und Waren. Feindliche Heere können ihn überfallen. Einrichtung: 60 Gold, dauerhaft, höchstens '+MAX_ROUTES+' Routen. Du hast '+G.routes.length+'.</small></p>';
   for(const r of G.routes.filter(r=>r.a===id||r.b===id))h+='<div class="row"><div><b>'+NODES[r.a].name+' ⇄ '+NODES[r.b].name+'</b><br><small>ca. '+routeProfit(r)+' Gold je Fahrt</small></div></div>';
   h+='<h2>Neue Route von '+NODES[id].name+'</h2>';
-  {const pb=potBau(PL);
-   if(G.routes.length>=MAX_ROUTES)h+='<p><small>🚫 Höchstzahl Routen erreicht ('+MAX_ROUTES+'). Löse erst eine auf.</small></p>';
-   else if(pb<60)h+='<p><small>🧱 Bau-Kasse zu klein: '+f0(pb)+' von 60 Gold. Stell im Reichsrat den Schieber Bau höher oder warte bis zum Monatsende.</small></p>'.replace('🧱','⛏️');}
+  if(G.routes.length>=MAX_ROUTES)h+='<p><small>🚫 Höchstzahl Routen erreicht ('+MAX_ROUTES+'). Löse erst eine auf.</small></p>';
   const opts=mine.map(x=>({x,r:pathFromTo(id,x)})).filter(o=>o.r&&!G.routes.some(r=>(r.a===id&&r.b===o.x)||(r.a===o.x&&r.b===id))).sort((p,q)=>p.r.cost-q.r.cost).slice(0,6);
   if(!opts.length)h+='<p><small>Kein weiterer eigener Ort erreichbar.</small></p>';
   opts.forEach((o,i)=>{h+='<div class="row"><div><b>'+NODES[o.x].name+'</b><br><small>ca. '+profitOf(o.r.cost)+' Gold je Fahrt · '+Math.ceil(o.r.cost/0.32)+' s Fahrzeit</small></div><button data-n="'+i+'"'+((canPay(PL,{gold:60},'bau')&&G.routes.length<MAX_ROUTES)?'':' disabled')+'>Einrichten</button></div>'});
