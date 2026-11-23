@@ -1325,7 +1325,7 @@ function playerParts(plan){
   const of=t=>mine.filter(id=>NODES[id].type===t);
   const spread=(kind,total,ids)=>{
     if(total<1||!ids.length)return;
-    ids.forEach((id,i)=>spawnParts(kind,total/ids.length,id,(G.hDelay=(G.hDelay||0)+0.25)));
+    ids.forEach((id,i)=>spawnParts(kind,total/ids.length,id,0.1+Math.min(i*0.1,1.2)));
     if(PENDMAP[kind])G.pend[kind]+=total;
   };
   G.hDelay=0;
@@ -2993,7 +2993,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.91 · 23.11.2026</small></h1>'+
+  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.92 · 23.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
