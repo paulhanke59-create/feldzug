@@ -2993,7 +2993,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.89 · 23.11.2026</small></h1>'+
+  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.90 · 23.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -3196,6 +3196,7 @@ function openNodeInfo(id){
   const vague=own!==PL;
   const pp=POPN[n.type]||0;
   add('Einwohner',vague?(pp>=400?'viele, vermutlich mehrere Hundert':pp>=200?'einige Hundert':'wenige, vielleicht ein paar Dutzend'):popN(id));
+  if(!vague&&pp)add('Erwerbstätig',Math.round(popN(id)*0.65)+' (der Rest: Kinder, Alte, Kranke)');
   const cn=CAPN[n.type];
   if(cn&&vague)add('Arbeitsplätze','unbekannt – erst nach Besetzung einsehbar');
   else if(cn){const cc=capsOf(id);add('Arbeitsplätze',Object.keys(cc).map(x=>({farm:'Feld',wood:'Holz',ore:'Erz',coal:'Kohle',craft:'Handwerk'}[x])+' '+cc[x]).join(', '))}
