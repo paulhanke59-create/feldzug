@@ -712,7 +712,7 @@ function taxOf(id){
   const K=G.K[k],tm=k===PL?TAXM[K.tax]:1,loy=k===PL?K.loy:75;
   return POPN[NODES[id].type]?Math.round(popN(id)*0.055*tm*(loy/100)*10)/10:0;
 }
-const coinsOf=id=>clamp(Math.ceil(taxOf(id)/5),1,6);
+const coinsOf=id=>clamp(Math.round(taxOf(id)/3),1,9);
 const popN=id=>Math.round((POPN[NODES[id].type]||0)*lvlF(id));
 const capsOf=id=>{const cn=CAPN[NODES[id].type],o={};if(cn)for(const x in cn)o[x]=Math.round(cn[x]*lvlF(id));return o};
 const popOf=k=>{let s=0;for(const id of owned(k))s+=(POPN[NODES[id].type]||0)*lvlF(id);return Math.round(s)};
@@ -3023,7 +3023,7 @@ $('card').addEventListener('click',tryClose);
 const kn=k=>'<b style="color:'+KINGS[k].color+'">'+KINGS[k].name+'</b>';
 function showIntro(){
   introOpen=true;
-  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.94 · 23.11.2026</small></h1>'+
+  showOverlay('<h1>My Kingdom <small style="font-size:13px;font-weight:normal">Version 5.95 · 28.11.2026</small></h1>'+
   '<p>Du bist König von '+kn(PL)+'. Fünf weitere Königreiche kämpfen um das Land – alle sind deine Feinde.</p>'+
   '<ul><li>Nur dein Reich ist bekannt, der Rest der Karte ist <b>unerforscht</b>. Schicke <b>Späher</b> aus.</li>'+
   '<li>Deine Dörfer, Äcker, Wälder und Minen versorgen das Reich. Zu jedem <b>Monatsende</b> halten deine Berater Rat:</li>'+
@@ -3505,7 +3505,7 @@ updateHud();
 showIntro();
 requestAnimationFrame(loop);
 
-window.__game={orderRoad,view,get G(){return G},roadGap,roadReach,get bg(){return bg},render,updateHud,handleTap,planArmy,resolveBattle,supplyInfo,aiDecide,newGame,troops,
+window.__game={taxOf,coinsOf,orderRoad,view,get G(){return G},roadGap,roadReach,get bg(){return bg},render,updateHud,handleTap,planArmy,resolveBattle,supplyInfo,aiDecide,newGame,troops,
   NODES,EDGES,EMAP,KINGS,KIDS,PL,routeCost,splitArmy,splitFrac,mergeArmies,sideArmies,selArmy,speedOf,advice,step,simulate,
   econPlan,orderRecruit,orderBuild,monthEnd,owned,aliveKings,addRoute,removeRoute,canPay,openEco,openMil,showMonthReport,exploredPct,
   set seed(s){G.rnd=mulberry32(s)}};
